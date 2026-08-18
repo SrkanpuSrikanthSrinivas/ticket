@@ -26,7 +26,7 @@ export default function Buy() {
   const qrRef = useRef(null);
 
   useEffect(() => {
-    fetch('/api/event').then((r) => r.json())
+    fetch('/api/event', { cache: 'no-store' }).then((r) => r.json())
       .then((d) => d.error ? setErr('No event is open for sales yet.') : setEv(d))
       .catch(() => setErr('Could not load the event.'));
   }, []);

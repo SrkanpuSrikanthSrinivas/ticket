@@ -24,5 +24,5 @@ export async function GET() {
     soldOut: t.max_qty != null && t.sold >= t.max_qty,
   }));
 
-  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, ticketTypes });
+  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
 }
