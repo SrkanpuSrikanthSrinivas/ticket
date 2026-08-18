@@ -11,14 +11,14 @@ cpn as (
   returning id, name
 ),
 tt as (
-  insert into ticket_types (event_id, name, description, price_cents, max_qty, is_comp, sort)
-  select e.id, x.name, x.descr, x.price, x.cap, x.comp, x.sort from e,
+  insert into ticket_types (event_id, name, description, price_cents, admits, max_qty, is_comp, sort)
+  select e.id, x.name, x.descr, x.price, x.admits, x.cap, x.comp, x.sort from e,
     (values
-      ('Adult','Entry + lunch + beverage', 2500, 500, false, 1),
-      ('Child (under 12)','Entry + lunch', 1000, 200, false, 2),
-      ('Family (up to 4)','Group entry for the family', 8000, 150, false, 3),
-      ('Volunteer / Performer','Comp entry with meal', 0, 100, true, 4)
-    ) as x(name,descr,price,cap,comp,sort)
+      ('Adult','Entry + lunch + beverage', 2500, 1, 500, false, 1),
+      ('Child (under 12)','Entry + lunch', 1000, 1, 200, false, 2),
+      ('Family (up to 4)','Group entry for the family', 8000, 4, 150, false, 3),
+      ('Volunteer / Performer','Comp entry with meal', 0, 1, 100, true, 4)
+    ) as x(name,descr,price,admits,cap,comp,sort)
   returning id, name
 )
 insert into ticket_coupon_allotments (ticket_type_id, coupon_type_id, qty_per_guest)

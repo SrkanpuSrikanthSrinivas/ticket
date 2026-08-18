@@ -77,3 +77,51 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .topbar{background:linear-gradient(180deg,var(--plum),var(--plum-2));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px}
 .topbar b{font-family:"Bricolage Grotesque"}
 .divider{height:1px;background:var(--line-2);margin:16px 0}
+
+/* --- admin: list rows, modal sheet, toggle, steppers --- */
+.section-h{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}
+.section-h .eyebrow{margin:0}
+.summary{display:flex;align-items:center;gap:12px}
+.summary .grow .s1{font-weight:700;font-family:"Bricolage Grotesque"}
+.summary .grow .s2{font-size:13px;color:var(--muted);margin-top:2px}
+.cchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:#efe6f7;color:var(--plum);padding:6px 11px;border-radius:999px;margin:0 6px 6px 0}
+.trow{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+.trow:hover{border-color:var(--plum)}
+.trow+.trow{margin-top:10px}
+.trow .tn{font-weight:700;font-family:"Bricolage Grotesque";font-size:15px}
+.trow .tm{font-size:12.5px;color:var(--muted);margin-top:3px}
+.trow .tp{margin-left:auto;font-weight:800;white-space:nowrap;font-family:"Bricolage Grotesque"}
+.trow .chev{color:var(--muted);flex:none}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;margin-left:6px;vertical-align:middle}
+.badge.comp{background:#fdeecb;color:var(--marigold-ink)}
+.badge.off{background:#eee;color:#888}
+
+.backdrop{position:fixed;inset:0;background:rgba(26,21,35,.5);display:flex;align-items:flex-end;justify-content:center;z-index:100;animation:fade .15s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media(min-width:600px){.backdrop{align-items:center;padding:20px}}
+.sheet{background:#fff;width:100%;max-width:520px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;animation:rise .2s ease}
+@keyframes rise{from{transform:translateY(20px)}to{transform:translateY(0)}}
+@media(min-width:600px){.sheet{border-radius:18px}}
+.sheet-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex:none}
+.sheet-head h3{font-size:18px;flex:1}
+.sheet-body{padding:18px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.sheet-body>*+*{margin-top:14px}
+.sheet-foot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:10px;flex:none;background:#fff}
+.iconbtn{background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:var(--muted);padding:2px 6px}
+
+.switch{display:inline-flex;align-items:center;gap:12px;cursor:pointer}
+.switch input{display:none}
+.track{width:46px;height:28px;border-radius:999px;background:#d8d1c6;position:relative;transition:.15s;flex:none}
+.switch input:checked+.track{background:var(--teal)}
+.knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked+.track .knob{transform:translateX(18px)}
+
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{width:40px;height:40px;border:0;background:#f7f3ec;font-size:20px;cursor:pointer;color:var(--plum);font-family:"Space Mono"}
+.stepper button:active{background:#efe6f7}
+.stepper input{width:48px;text-align:center;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);border-radius:0;padding:9px 0}
+.allot-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-2)}
+.allot-row:last-child{border-bottom:0}
+.pricewrap{position:relative}
+.pricewrap span{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600}
+.pricewrap input{padding-left:26px}
