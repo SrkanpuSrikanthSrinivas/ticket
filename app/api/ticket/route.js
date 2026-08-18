@@ -12,7 +12,7 @@ export async function POST(req) {
   const rows = await sql`
     select t.id, t.code, t.qty, t.status, t.checked_in_at,
            tt.name as type_name, o.buyer_name,
-           coalesce(json_agg(json_build_object('id', c.id, 'name', ct.name, 'redeemed', c.redeemed))
+           coalesce(json_agg(json_build_object('id', c.id, 'name', ct.name, 'value_cents', ct.value_cents, 'redeemed', c.redeemed))
                     filter (where c.id is not null), '[]'::json) as coupons
     from tickets t
     join ticket_types tt on tt.id=t.ticket_type_id

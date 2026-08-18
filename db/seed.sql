@@ -5,9 +5,9 @@ with e as (
   returning id
 ),
 cpn as (
-  insert into coupon_types (event_id, name, sort)
-  select e.id, x.name, x.sort from e,
-    (values ('Lunch',1),('Snacks',2),('Beverage',3)) as x(name,sort)
+  insert into coupon_types (event_id, name, value_cents, sort)
+  select e.id, x.name, x.val, x.sort from e,
+    (values ('$2 coupon',200,1),('$5 coupon',500,2),('$8 coupon',800,3),('$10 coupon',1000,4)) as x(name,val,sort)
   returning id, name
 ),
 tt as (

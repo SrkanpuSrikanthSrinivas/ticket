@@ -8,6 +8,7 @@ function loadScript(src) {
     s.src = src; s.onload = res; s.onerror = rej; document.body.appendChild(s);
   });
 }
+const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 const initials = (s) => String(s || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 
 export default function Gate() {
@@ -68,7 +69,7 @@ export default function Gate() {
     const press = (d) => { const n = (pin + d).slice(0, 6); setPin(n); };
     return (
       <div>
-        <div className="topbar"><b>MKANT · Gate check-in</b></div>
+        <div className="topbar"><b>Gate check-in</b></div>
         <div className="wrap">
           <div className="card" style={{ textAlign: 'center' }}>
             <div className="eyebrow" style={{ marginBottom: 4 }}>Staff sign-in</div>
@@ -89,7 +90,7 @@ export default function Gate() {
 
   return (
     <div>
-      <div className="topbar"><b>MKANT · Gate check-in</b></div>
+      <div className="topbar"><b>Gate check-in</b></div>
       <div className="wrap">
         <div className="card">
           <div className="segment">
@@ -151,7 +152,7 @@ export default function Gate() {
             <p className="hint" style={{ marginTop: 6 }}>{card.type_name}</p>
             <div className="eyebrow" style={{ marginTop: 14 }}>Coupons issued — hand these over</div>
             <div className="chips">
-              {(card.coupons || []).filter((c) => c.id).map((c) => <span key={c.id} className="chip">🍽 {c.name}</span>)}
+              {(card.coupons || []).filter((c) => c.id).map((c) => <span key={c.id} className="chip">🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span>)}
               {(!card.coupons || card.coupons.filter((c) => c.id).length === 0) && <span className="hint">No coupons on this ticket.</span>}
             </div>
             <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }} onClick={reset}>Next guest</button>

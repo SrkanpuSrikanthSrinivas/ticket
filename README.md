@@ -47,6 +47,22 @@ next.config.js       CSP frame-ancestors so mkant.org can embed the buyer flow
 - **`/stall`** — food stalls. PIN sign-in, look up a guest, redeem coupons one at a time
   or all at once. Staff open `/gate`, `/stall`, and `/admin` directly (not embedded).
 
+## Food coupons are denominations
+
+Coupons carry a dollar value (e.g. $2, $5, $8, $10) and behave like event scrip.
+Define the denominations at `/admin` -> "Food coupon denominations", then set how many
+of each a ticket grants. The admin shows a live food-value total per ticket; the stall
+screen shows each coupon's value and the remaining balance as staff redeem.
+
+## Reusing this for any event / org
+
+The module is white-label: the event name, tiers, coupons, and code prefix are all data
+or env, not hardcoded. To stand up a new event or drop it on a different site:
+- Set `TICKET_CODE_PREFIX` (e.g. `MKANT` -> `MKANT-8F3K2Q`) and `EMBED_ORIGIN` (the site
+  that will iframe the buyer flow).
+- Configure the event, tiers, and denominations entirely from `/admin` — no code changes.
+- The buyer ticket, emails, and screens all read the event name from the database.
+
 ## Ticket types, groups, and coupons
 
 Each ticket type has a **price**, a **group size** (how many people one ticket admits —
@@ -62,7 +78,8 @@ instead of destroying order history.
    (`openssl rand -base64 32`), an email key, and a `STAFF_PIN`.
 2. Create the tables: run `db/schema.sql` against your Neon database (then `db/seed.sql`
    to load a sample event you can test against immediately). If you already ran an older
-   `schema.sql`, also run `db/migrate-admits.sql` to add group-size support.
+   `schema.sql`, also run `db/migrate-admits.sql` (group size) and
+   `db/migrate-denominations.sql` (coupon dollar values).
 3. Set two PINs in the env: `ADMIN_PIN` (ticket setup) and `STAFF_PIN` (gate + stall).
    Keep the admin PIN tighter — it can change prices and tiers.
 4. `npm install && npm run dev`. Configure your tiers at `/admin`.

@@ -7,7 +7,7 @@ export default function Admin() {
   const [pin, setPin] = useState('');
   const [authed, setAuthed] = useState(false);
   const [cfg, setCfg] = useState(null);
-  const [modal, setModal] = useState(null); // {kind:'ticket',ticket} | {kind:'event'} | {kind:'coupons'}
+  const [modal, setModal] = useState(null);
   const [msg, setMsg] = useState('');
 
   async function load(p = pin) {
@@ -18,14 +18,14 @@ export default function Admin() {
     return true;
   }
   useEffect(() => { if (authed) load(); }, [authed]);
-  function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 2500); }
+  function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 2600); }
   async function afterSave(m) { setModal(null); await load(); flash(m); }
 
   if (!authed) {
     const press = (n) => setPin((pin + n).slice(0, 6));
     return (
       <div>
-        <div className="topbar"><b>MKANT · Ticket setup</b></div>
+        <div className="topbar"><b>Ticket setup</b></div>
         <div className="wrap">
           <div className="card" style={{ textAlign: 'center' }}>
             <div className="eyebrow" style={{ marginBottom: 4 }}>Organizer sign-in</div>
@@ -47,10 +47,11 @@ export default function Admin() {
   const ev = cfg?.event;
   const coupons = cfg?.couponTypes || [];
   const tickets = [...(cfg?.ticketTypes || [])].sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name));
-
+  const foodValue = (t) => coupons.reduce((s, c) => s + (t.allot?.[c.id] || 0) * (c.value_cents || 0), 0);
   const couponSummary = (t) => {
-    const parts = coupons.filter((c) => (t.allot?.[c.id] || 0) > 0).map((c) => `${c.name} ×${t.allot[c.id]}`);
-    return parts.length ? parts.join(' · ') : 'No coupons';
+    const parts = coupons.filter((c) => (t.allot?.[c.id] || 0) > 0).map((c) => `${c.name}×${t.allot[c.id]}`);
+    const fv = foodValue(t);
+    return parts.length ? `${money(fv)} food · ${parts.join(', ')}` : 'No food coupons';
   };
   const availText = (t) => {
     const cap = t.max_qty == null ? 'Unlimited' : `${t.max_qty} available`;
@@ -59,11 +60,10 @@ export default function Admin() {
 
   return (
     <div>
-      <div className="topbar"><b>MKANT · Ticket setup</b>
+      <div className="topbar"><b>{ev?.name || 'Ticket setup'}</b>
         <span style={{ marginLeft: 'auto', fontSize: 12, opacity: .9 }}>{msg}</span></div>
       <div className="wrap">
 
-        {/* Event */}
         <div className="section-h"><div className="eyebrow">Event</div>
           <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'event' })}>Edit</button></div>
         <div className="card summary">
@@ -73,15 +73,13 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Coupons */}
-        <div className="section-h"><div className="eyebrow">Food coupon types</div>
+        <div className="section-h"><div className="eyebrow">Food coupon denominations</div>
           <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'coupons' })}>Manage</button></div>
         <div className="card">
-          {coupons.length ? coupons.map((c) => <span key={c.id} className="cchip">{c.name}</span>)
-            : <div className="hint">No coupon types yet. Add lunch, snacks, beverage…</div>}
+          {coupons.length ? coupons.map((c) => <span key={c.id} className="cchip">{c.name} · {money(c.value_cents)}</span>)
+            : <div className="hint">No denominations yet. Add $2, $5, $8, $10…</div>}
         </div>
 
-        {/* Tickets */}
         <div className="section-h"><div className="eyebrow">Ticket types</div>
           <button className="btn btn-primary btn-sm" onClick={() => setModal({ kind: 'ticket', ticket: null })}>＋ New ticket</button></div>
         {tickets.length === 0 && <div className="card hint">No tickets yet. Create your first ticket type — individual, group, or comp.</div>}
@@ -101,12 +99,18 @@ export default function Admin() {
         ))}
       </div>
 
-      {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)} onSaved={() => afterSave('Event saved')} />}
+      {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)} onSaved={() => afterSave('Event saved')} onErr={flash} />}
       {modal?.kind === 'coupons' && <CouponsModal pin={pin} coupons={coupons} onClose={() => setModal(null)} onChanged={load} />}
       {modal?.kind === 'ticket' && <TicketModal pin={pin} ticket={modal.ticket} coupons={coupons}
         onClose={() => setModal(null)} onSaved={(m) => afterSave(m)} />}
     </div>
   );
+}
+
+async function post(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+  let data = {}; try { data = await res.json(); } catch {}
+  return { ok: res.ok, data };
 }
 
 function Sheet({ title, onClose, children, footer }) {
@@ -127,8 +131,8 @@ function EventModal({ pin, event, onClose, onSaved }) {
   const save = async () => {
     if (!f.name.trim()) return setErr('Event name is required.');
     setBusy(true);
-    const res = await fetch('/api/admin/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, ...f }) });
-    setBusy(false); if (res.ok) onSaved(); else setErr('Save failed.');
+    const { ok, data } = await post('/api/admin/event', { adminPin: pin, ...f });
+    setBusy(false); if (ok) onSaved(); else setErr(data.message || 'Save failed.');
   };
   return (
     <Sheet title="Event details" onClose={onClose}
@@ -146,23 +150,39 @@ function EventModal({ pin, event, onClose, onSaved }) {
 }
 
 function CouponsModal({ pin, coupons, onClose, onChanged }) {
-  const [name, setName] = useState(''); const [busy, setBusy] = useState(false);
-  const api = (method, body) => fetch('/api/admin/coupons', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, ...body }) });
-  const add = async () => { if (!name.trim()) return; setBusy(true); await api('POST', { name: name.trim() }); setName(''); setBusy(false); onChanged(); };
-  const rename = async (id, v) => { await api('POST', { id, name: v }); onChanged(); };
-  const remove = async (id) => { const r = await api('DELETE', { id }); if (!r.ok) alert('Coupons of this type were already issued — cannot remove.'); onChanged(); };
+  const [name, setName] = useState(''); const [dollars, setDollars] = useState('');
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const add = async () => {
+    const v = Math.round((Number(dollars) || 0) * 100);
+    if (!name.trim() && !v) return setErr('Give it a label and a value.');
+    setBusy(true);
+    const { ok, data } = await post('/api/admin/coupons', { adminPin: pin, name: name.trim() || `$${(v / 100)}`, value_cents: v });
+    setBusy(false);
+    if (ok) { setName(''); setDollars(''); setErr(''); onChanged(); } else setErr(data.message || 'Could not add.');
+  };
+  const saveOne = async (c, patch) => { await post('/api/admin/coupons', { adminPin: pin, id: c.id, name: patch.name ?? c.name, value_cents: patch.value_cents ?? c.value_cents }); onChanged(); };
+  const remove = async (id) => { const { ok } = await post('/api/admin/coupons', { adminPin: pin, id }); if (!ok) {} 
+    await fetch('/api/admin/coupons', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id }) }); onChanged(); };
   return (
-    <Sheet title="Food coupon types" onClose={onClose} footer={<button className="btn btn-primary btn-block" onClick={onClose}>Done</button>}>
-      {coupons.length === 0 && <div className="hint">Add the coupons your tickets grant — lunch, snacks, beverage, chai…</div>}
+    <Sheet title="Food coupon denominations" onClose={onClose} footer={<button className="btn btn-primary btn-block" onClick={onClose}>Done</button>}>
+      <div className="hint">These are the coupon values guests spend at food stalls — like $2, $5, $8, $10.</div>
       {coupons.map((c) => (
-        <div key={c.id} className="row" style={{ alignItems: 'center' }}>
-          <input className="grow" defaultValue={c.name} onBlur={(e) => e.target.value.trim() && e.target.value !== c.name && rename(c.id, e.target.value.trim())} />
-          <button className="btn btn-ghost btn-sm" onClick={() => remove(c.id)}>Remove</button>
+        <div key={c.id} className="row" style={{ alignItems: 'center', gap: 8 }}>
+          <input className="grow" defaultValue={c.name} onBlur={(e) => e.target.value.trim() !== c.name && saveOne(c, { name: e.target.value.trim() })} />
+          <div className="pricewrap" style={{ width: 100 }}><span>$</span>
+            <input type="number" min="0" step="1" defaultValue={(c.value_cents || 0) / 100}
+              onBlur={(e) => saveOne(c, { value_cents: Math.round((Number(e.target.value) || 0) * 100) })} /></div>
+          <button className="btn btn-ghost btn-sm" onClick={() => remove(c.id)}>✕</button>
         </div>
       ))}
       <div className="divider" />
-      <div className="row"><input className="grow" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Dinner, Dessert, Chai" onKeyDown={(e) => e.key === 'Enter' && add()} />
-        <button className="btn btn-ghost" disabled={busy} onClick={add}>Add</button></div>
+      <div className="row" style={{ gap: 8 }}>
+        <input className="grow" value={name} onChange={(e) => setName(e.target.value)} placeholder="Label (e.g. $5 coupon)" />
+        <div className="pricewrap" style={{ width: 100 }}><span>$</span>
+          <input type="number" min="0" step="1" value={dollars} onChange={(e) => setDollars(e.target.value)} placeholder="5" /></div>
+      </div>
+      <button className="btn btn-ghost btn-block" disabled={busy} onClick={add}>Add denomination</button>
+      {err && <div className="err">{err}</div>}
     </Sheet>
   );
 }
@@ -195,18 +215,20 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const setAllot = (cid, v) => setF((p) => ({ ...p, allot: { ...p.allot, [cid]: v } }));
+  const foodTotal = coupons.reduce((s, c) => s + (f.allot?.[c.id] || 0) * (c.value_cents || 0), 0);
 
   const save = async () => {
     if (!f.name.trim()) return setErr('Give the ticket a name.');
     setBusy(true); setErr('');
-    const body = {
+    const { ok, data } = await post('/api/admin/tickets', {
       adminPin: pin, id: f.id, name: f.name.trim(), description: f.description,
       price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
       admits: f.admits, max_qty: f.max_qty === '' ? null : f.max_qty,
       is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
-    };
-    const res = await fetch('/api/admin/tickets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    setBusy(false); if (res.ok) onSaved(editing ? 'Ticket updated' : 'Ticket created'); else setErr('Save failed.');
+    });
+    setBusy(false);
+    if (ok) onSaved(editing ? 'Ticket updated' : 'Ticket created');
+    else setErr(data.message || 'Save failed.');
   };
   const del = async () => {
     if (!confirm('Delete this ticket type?')) return;
@@ -249,12 +271,15 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
       </label>
 
       <div>
-        <label className="f">Food coupons included (total per ticket)</label>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <label className="f" style={{ margin: 0 }}>Food coupons included</label>
+          <span style={{ fontWeight: 700, color: 'var(--marigold-ink)' }}>{money(foodTotal)} total</span>
+        </div>
         {coupons.length === 0
-          ? <div className="hint">No coupon types yet — add some under “Manage”.</div>
+          ? <div className="hint">No denominations yet — add some under “Manage”.</div>
           : coupons.map((c) => (
             <div key={c.id} className="allot-row">
-              <span>{c.name}</span>
+              <span>{c.name} <span className="hint" style={{ margin: 0 }}>({money(c.value_cents)})</span></span>
               <Stepper value={f.allot?.[c.id] || 0} onChange={(v) => setAllot(c.id, v)} />
             </div>
           ))}

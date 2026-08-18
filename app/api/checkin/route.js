@@ -44,7 +44,7 @@ export async function POST(req) {
 
   const info = await sql`
     select t.checked_in_at, tt.name as type_name, o.buyer_name, t.qty,
-      json_agg(json_build_object('id', c.id, 'name', ct.name, 'redeemed', c.redeemed)) as coupons
+      json_agg(json_build_object('id', c.id, 'name', ct.name, 'value_cents', ct.value_cents, 'redeemed', c.redeemed)) as coupons
     from tickets t join ticket_types tt on tt.id=t.ticket_type_id
     join orders o on o.id=t.order_id
     left join coupons c on c.ticket_id=t.id

@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'MKANT Tickets',
+  title: 'Event Tickets',
   description: 'Event tickets, gate check-in, and food coupons',
 };
 

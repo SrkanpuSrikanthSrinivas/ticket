@@ -12,7 +12,7 @@ export async function GET(req) {
                            from events order by created_at desc limit 1`)[0] || null;
   if (!event) return Response.json({ event: null, couponTypes: [], ticketTypes: [] });
 
-  const couponTypes = await sql`select id, name from coupon_types
+  const couponTypes = await sql`select id, name, value_cents from coupon_types
                                 where event_id=${event.id} order by sort, name`;
 
   const ticketTypes = await sql`

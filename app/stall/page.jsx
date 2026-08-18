@@ -8,6 +8,7 @@ function loadScript(src) {
     s.src = src; s.onload = res; s.onerror = rej; document.body.appendChild(s);
   });
 }
+const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 const initials = (s) => String(s || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 
 export default function Stall() {
@@ -66,7 +67,7 @@ export default function Stall() {
     const press = (d) => setPin((pin + d).slice(0, 6));
     return (
       <div>
-        <div className="topbar"><b>MKANT · Food coupons</b></div>
+        <div className="topbar"><b>Food coupons</b></div>
         <div className="wrap">
           <div className="card" style={{ textAlign: 'center' }}>
             <div className="eyebrow" style={{ marginBottom: 4 }}>Staff sign-in</div>
@@ -87,10 +88,11 @@ export default function Stall() {
   const t = state?.kind === 'ticket' ? state.ticket : null;
   const coupons = t?.coupons?.filter((c) => c.id) || [];
   const left = coupons.filter((c) => !c.redeemed).length;
+  const valueLeft = coupons.filter((c) => !c.redeemed).reduce((s, c) => s + (c.value_cents || 0), 0);
 
   return (
     <div>
-      <div className="topbar"><b>MKANT · Food coupons</b></div>
+      <div className="topbar"><b>Food coupons</b></div>
       <div className="wrap">
         <div className="card">
           <div className="segment">
@@ -128,14 +130,14 @@ export default function Stall() {
             <div className="li" style={{ border: 0, padding: '0 0 12px' }}>
               <div className="avatar">{initials(t.buyer_name)}</div>
               <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{t.buyer_name}</div><div className="hint">{t.type_name} · {t.code}</div></div>
-              <span className="pill in">{left} left</span>
+              <span className="pill in">{left} left · {money(valueLeft)}</span>
             </div>
             <div className="divider" />
             <div className="chips">
               {coupons.length === 0 && <span className="hint">No coupons on this ticket.</span>}
               {coupons.map((c) => c.redeemed
-                ? <span key={c.id} className="chip done">✓ {c.name}</span>
-                : <span key={c.id} className="chip">🍽 {c.name}
+                ? <span key={c.id} className="chip done">✓ {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span>
+                : <span key={c.id} className="chip">🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}
                     <button className="btn btn-go btn-sm" disabled={busy} onClick={() => redeem(c.id, t.id)}>Redeem</button></span>)}
             </div>
             {coupons.length > 0 && (

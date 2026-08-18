@@ -27,6 +27,7 @@ create table if not exists coupon_types (
   id uuid primary key default gen_random_uuid(),
   event_id uuid references events(id) on delete cascade,
   name text not null,
+  value_cents int not null default 0,   -- denomination, e.g. 500 = $5 food coupon
   sort int default 0
 );
 
