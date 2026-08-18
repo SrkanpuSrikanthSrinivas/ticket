@@ -137,6 +137,7 @@ export default function Buy() {
                 <div className="grow">
                   <div className="nm">{t.name}</div>
                   {t.description && <div className="ds">{t.description}</div>}
+                  {t.admits > 1 && <div className="ds">Admits {t.admits} people</div>}
                   {t.remaining != null && t.remaining <= 25 && !t.soldOut && <div className="ds">Only {t.remaining} left</div>}
                   {t.soldOut && <div className="ds">Sold out</div>}
                 </div>

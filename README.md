@@ -29,26 +29,43 @@ app/api/export       CSV of all tickets — the printed offline backup
 app/page.jsx         Buyer flow — the page you iframe onto the MKANT site
 app/gate/page.jsx    Gate check-in (PIN sign-in, scan/type, issue coupons)
 app/stall/page.jsx   Food-stall redemption (PIN sign-in, scan/type, redeem)
+app/admin/page.jsx   Ticket setup console (PIN sign-in) — build your own tiers
+app/api/admin/*      Config load, event upsert, coupon-type CRUD, ticket-type CRUD
 next.config.js       CSP frame-ancestors so mkant.org can embed the buyer flow
 ```
 
-## The three screens
+## The four screens
 
 - **`/`** — the buyer flow. This is the URL you drop into the MKANT `<iframe>`. Tiers,
   quantity, buyer details, Braintree Drop-in card form, then a confirmed ticket with QR.
   Free/comp tiers skip payment.
+- **`/admin`** — ticket setup (organizer PIN). Create your own ticket types — individual,
+  group/family, comp — set price, capacity, group size, and exactly which food coupons
+  each ticket grants. No SQL needed; the buyer flow updates the moment you save.
 - **`/gate`** — gate staff. PIN sign-in, then scan a QR or search by name/code, tap to
   check in, and the issued food coupons appear to hand over.
 - **`/stall`** — food stalls. PIN sign-in, look up a guest, redeem coupons one at a time
-  or all at once. Staff open `/gate` and `/stall` directly on their phones (not embedded).
+  or all at once. Staff open `/gate`, `/stall`, and `/admin` directly (not embedded).
+
+## Ticket types, groups, and coupons
+
+Each ticket type has a **price**, a **group size** (how many people one ticket admits —
+1 for individual, 4 for a family pack), a **capacity** (tickets available), an optional
+**comp** flag, and a **coupon allotment** (how many of each coupon the ticket grants, in
+total). Because group size is explicit, your check-in dashboard counts *people*, not just
+tickets — which matters at 700+. Deleting a tier that already has sales deactivates it
+instead of destroying order history.
 
 ## Setup
 
 1. `cp .env.example .env.local` and fill in Neon, Braintree, a random `TICKET_SECRET`
    (`openssl rand -base64 32`), an email key, and a `STAFF_PIN`.
 2. Create the tables: run `db/schema.sql` against your Neon database (then `db/seed.sql`
-   to load a sample event you can test against immediately).
-3. `npm install && npm run dev`.
+   to load a sample event you can test against immediately). If you already ran an older
+   `schema.sql`, also run `db/migrate-admits.sql` to add group-size support.
+3. Set two PINs in the env: `ADMIN_PIN` (ticket setup) and `STAFF_PIN` (gate + stall).
+   Keep the admin PIN tighter — it can change prices and tiers.
+4. `npm install && npm run dev`. Configure your tiers at `/admin`.
 4. Deploy to Vercel; set the same env vars in the project settings. Point a subdomain
    like `tickets.mkant.org` at it.
 
@@ -99,5 +116,5 @@ so a coupon is spent exactly once. No application-level locking, no race.
   `create()` call and verify on the server. The current flow charges directly.
 - **Go live.** Flip `BT_ENV` to `production` with live Braintree keys, set `EMBED_ORIGIN`
   to the exact MKANT origin, and generate a fresh `TICKET_SECRET`.
-- **Configure the event.** Edit tiers/coupons/caps directly in the DB (or `db/seed.sql`)
-  for now; a small admin screen on top of these tables is the natural next add.
+- **Configure the event** at `/admin` — build your tiers, groups, comps, and coupon
+  allotments there; the sample seed is only a starting point you can edit or delete.
