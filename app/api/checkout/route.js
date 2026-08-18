@@ -52,12 +52,10 @@ export async function POST(req) {
   const ticketId = randomUUID();
   const code = humanCode();
   try {
-    await sql.transaction([
-      sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, amount_cents, braintree_txn_id, status)
-          values (${orderId}, ${tt.event_id}, ${buyer.name}, ${buyer.email}, ${buyer.phone || null}, ${amountCents}, ${txnId}, 'paid')`,
-      sql`insert into tickets (id, order_id, event_id, ticket_type_id, code, qty)
-          values (${ticketId}, ${orderId}, ${tt.event_id}, ${tt.id}, ${code}, ${units})`,
-    ]);
+    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, amount_cents, braintree_txn_id, status)
+              values (${orderId}, ${tt.event_id}, ${buyer.name}, ${buyer.email}, ${buyer.phone || null}, ${amountCents}, ${txnId}, 'paid')`;
+    await sql`insert into tickets (id, order_id, event_id, ticket_type_id, code, qty)
+              values (${ticketId}, ${orderId}, ${tt.event_id}, ${tt.id}, ${code}, ${units})`;
   } catch (e) {
     console.error('order write failed (txn ' + txnId + '):', e);
     return Response.json({ error: 'server_error', message: 'Payment captured but ticket save failed — keep txn ' + txnId }, { status: 500 });
