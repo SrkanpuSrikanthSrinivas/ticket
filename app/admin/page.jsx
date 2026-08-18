@@ -1,273 +1,171 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 
-const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
-
-export default function Admin() {
-  const [pin, setPin] = useState('');
-  const [authed, setAuthed] = useState(false);
-  const [cfg, setCfg] = useState(null);
-  const [modal, setModal] = useState(null); // {kind:'ticket',ticket} | {kind:'event'} | {kind:'coupons'}
-  const [msg, setMsg] = useState('');
-
-  async function load(p = pin) {
-    const res = await fetch(`/api/admin/config?pin=${encodeURIComponent(p)}`);
-    if (res.status === 401) { setMsg('Wrong PIN'); return false; }
-    if (!res.ok) { setMsg('Could not load — check the database'); return false; }
-    setCfg(await res.json());
-    return true;
-  }
-  useEffect(() => { if (authed) load(); }, [authed]);
-  function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 2500); }
-  async function afterSave(m) { setModal(null); await load(); flash(m); }
-
-  if (!authed) {
-    const press = (n) => setPin((pin + n).slice(0, 6));
-    return (
-      <div>
-        <div className="topbar"><b>MKANT · Ticket setup</b></div>
-        <div className="wrap">
-          <div className="card" style={{ textAlign: 'center' }}>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>Organizer sign-in</div>
-            <h2 style={{ fontSize: 20 }}>Enter the admin PIN</h2>
-            <div className="pindots">{[0, 1, 2, 3].map((i) => <i key={i} className={pin.length > i ? 'f' : ''} />)}</div>
-            <div className="pinpad">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <button key={n} onClick={() => press(n)}>{n}</button>)}
-              <button onClick={() => setPin('')}>✕</button>
-              <button onClick={() => press(0)}>0</button>
-              <button onClick={async () => { if (await load(pin)) setAuthed(true); }}>→</button>
-            </div>
-            {msg && <p className="err">{msg}</p>}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const ev = cfg?.event;
-  const coupons = cfg?.couponTypes || [];
-  const tickets = [...(cfg?.ticketTypes || [])].sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name));
-
-  const couponSummary = (t) => {
-    const parts = coupons.filter((c) => (t.allot?.[c.id] || 0) > 0).map((c) => `${c.name} ×${t.allot[c.id]}`);
-    return parts.length ? parts.join(' · ') : 'No coupons';
-  };
-  const availText = (t) => {
-    const cap = t.max_qty == null ? 'Unlimited' : `${t.max_qty} available`;
-    return t.sold ? `${cap} · ${t.sold} sold` : cap;
-  };
-
-  return (
-    <div>
-      <div className="topbar"><b>MKANT · Ticket setup</b>
-        <span style={{ marginLeft: 'auto', fontSize: 12, opacity: .9 }}>{msg}</span></div>
-      <div className="wrap">
-
-        {/* Event */}
-        <div className="section-h"><div className="eyebrow">Event</div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'event' })}>Edit</button></div>
-        <div className="card summary">
-          <div className="grow">
-            <div className="s1">{ev?.name || 'Untitled event'}</div>
-            <div className="s2">{[ev?.event_date, ev?.venue].filter(Boolean).join(' · ') || 'Add date & venue'}</div>
-          </div>
-        </div>
-
-        {/* Coupons */}
-        <div className="section-h"><div className="eyebrow">Food coupon types</div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'coupons' })}>Manage</button></div>
-        <div className="card">
-          {coupons.length ? coupons.map((c) => <span key={c.id} className="cchip">{c.name}</span>)
-            : <div className="hint">No coupon types yet. Add lunch, snacks, beverage…</div>}
-        </div>
-
-        {/* Tickets */}
-        <div className="section-h"><div className="eyebrow">Ticket types</div>
-          <button className="btn btn-primary btn-sm" onClick={() => setModal({ kind: 'ticket', ticket: null })}>＋ New ticket</button></div>
-        {tickets.length === 0 && <div className="card hint">No tickets yet. Create your first ticket type — individual, group, or comp.</div>}
-        {tickets.map((t) => (
-          <button key={t.id} className="trow" onClick={() => setModal({ kind: 'ticket', ticket: t })}>
-            <div className="grow">
-              <div className="tn">{t.name}
-                {t.is_comp && <span className="badge comp">Comp</span>}
-                {t.active === false && <span className="badge off">Off</span>}
-              </div>
-              <div className="tm">{t.admits > 1 ? `Group of ${t.admits} · ` : ''}{availText(t)}</div>
-              <div className="tm">{couponSummary(t)}</div>
-            </div>
-            <div className="tp">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
-            <svg className="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg>
-          </button>
-        ))}
-      </div>
-
-      {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)} onSaved={() => afterSave('Event saved')} />}
-      {modal?.kind === 'coupons' && <CouponsModal pin={pin} coupons={coupons} onClose={() => setModal(null)} onChanged={load} />}
-      {modal?.kind === 'ticket' && <TicketModal pin={pin} ticket={modal.ticket} coupons={coupons}
-        onClose={() => setModal(null)} onSaved={(m) => afterSave(m)} />}
-    </div>
-  );
-}
-
-function Sheet({ title, onClose, children, footer }) {
-  return (
-    <div className="backdrop" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-head"><h3>{title}</h3><button className="iconbtn" onClick={onClose}>×</button></div>
-        <div className="sheet-body">{children}</div>
-        {footer && <div className="sheet-foot">{footer}</div>}
-      </div>
-    </div>
-  );
-}
-
-function EventModal({ pin, event, onClose, onSaved }) {
-  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', venue: event?.venue || '', tagline: event?.tagline || '' });
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
-  const save = async () => {
-    if (!f.name.trim()) return setErr('Event name is required.');
-    setBusy(true);
-    const res = await fetch('/api/admin/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, ...f }) });
-    setBusy(false); if (res.ok) onSaved(); else setErr('Save failed.');
-  };
-  return (
-    <Sheet title="Event details" onClose={onClose}
-      footer={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary grow" disabled={busy} onClick={save}>Save</button></>}>
-      <div><label className="f">Event name</label><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
-      <div className="row">
-        <div className="grow"><label className="f">Date</label><input value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} placeholder="Sat, Jun 20 · 5 PM" /></div>
-        <div className="grow"><label className="f">Venue</label><input value={f.venue} onChange={(e) => setF({ ...f, venue: e.target.value })} placeholder="Community Hall" /></div>
-      </div>
-      <div><label className="f">Welcome line (on the ticket)</label><input value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} /></div>
-      {err && <div className="err">{err}</div>}
-    </Sheet>
-  );
-}
-
-function CouponsModal({ pin, coupons, onClose, onChanged }) {
-  const [name, setName] = useState(''); const [busy, setBusy] = useState(false);
-  const api = (method, body) => fetch('/api/admin/coupons', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, ...body }) });
-  const add = async () => { if (!name.trim()) return; setBusy(true); await api('POST', { name: name.trim() }); setName(''); setBusy(false); onChanged(); };
-  const rename = async (id, v) => { await api('POST', { id, name: v }); onChanged(); };
-  const remove = async (id) => { const r = await api('DELETE', { id }); if (!r.ok) alert('Coupons of this type were already issued — cannot remove.'); onChanged(); };
-  return (
-    <Sheet title="Food coupon types" onClose={onClose} footer={<button className="btn btn-primary btn-block" onClick={onClose}>Done</button>}>
-      {coupons.length === 0 && <div className="hint">Add the coupons your tickets grant — lunch, snacks, beverage, chai…</div>}
-      {coupons.map((c) => (
-        <div key={c.id} className="row" style={{ alignItems: 'center' }}>
-          <input className="grow" defaultValue={c.name} onBlur={(e) => e.target.value.trim() && e.target.value !== c.name && rename(c.id, e.target.value.trim())} />
-          <button className="btn btn-ghost btn-sm" onClick={() => remove(c.id)}>Remove</button>
-        </div>
-      ))}
-      <div className="divider" />
-      <div className="row"><input className="grow" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Dinner, Dessert, Chai" onKeyDown={(e) => e.key === 'Enter' && add()} />
-        <button className="btn btn-ghost" disabled={busy} onClick={add}>Add</button></div>
-    </Sheet>
-  );
-}
-
-function Stepper({ value, onChange, min = 0 }) {
-  const set = (v) => onChange(Math.max(min, v));
-  return (
-    <div className="stepper">
-      <button type="button" onClick={() => set((+value || 0) - 1)}>−</button>
-      <input value={value} onChange={(e) => set(parseInt(e.target.value, 10) || 0)} />
-      <button type="button" onClick={() => set((+value || 0) + 1)}>+</button>
-    </div>
-  );
-}
-
-function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
-  const editing = !!ticket?.id;
-  const [f, setF] = useState({
-    id: ticket?.id,
-    name: ticket?.name || '',
-    priceDollars: ticket ? (ticket.price_cents || 0) / 100 : 0,
-    description: ticket?.description || '',
-    admits: ticket?.admits || 1,
-    max_qty: ticket?.max_qty ?? '',
-    is_comp: !!ticket?.is_comp,
-    active: ticket?.active !== false,
-    sort: ticket?.sort || 0,
-    allot: { ...(ticket?.allot || {}) },
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) return res();
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.body.appendChild(s);
   });
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const setAllot = (cid, v) => setF((p) => ({ ...p, allot: { ...p.allot, [cid]: v } }));
+}
+const money = (c) => `$${(c / 100).toFixed(2)}`;
 
-  const save = async () => {
-    if (!f.name.trim()) return setErr('Give the ticket a name.');
+export default function Buy() {
+  const [ev, setEv] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [qty, setQty] = useState(1);
+  const [buyer, setBuyer] = useState({ name: '', email: '', phone: '' });
+  const [stage, setStage] = useState('pick'); // pick | pay | done
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [ticket, setTicket] = useState(null);
+  const dropinRef = useRef(null);
+  const instRef = useRef(null);
+  const qrRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/api/event', { cache: 'no-store' }).then((r) => r.json())
+      .then((d) => d.error ? setErr('No event is open for sales yet.') : setEv(d))
+      .catch(() => setErr('Could not load the event.'));
+  }, []);
+
+  useEffect(() => {
+    if (ticket && qrRef.current) QRCode.toCanvas(qrRef.current, ticket.token, { width: 172, margin: 1 });
+  }, [ticket]);
+
+  const tier = ev?.ticketTypes?.find((t) => t.id === sel);
+  const isPaid = tier && !tier.is_comp && tier.price_cents > 0;
+  const amountCents = tier ? tier.price_cents * qty : 0;
+
+  async function goPay() {
+    setErr('');
+    if (!tier) return setErr('Please choose a ticket.');
+    if (!buyer.name || !buyer.email) return setErr('Name and email are required.');
+    if (!isPaid) return submit(null);
+    setStage('pay'); setBusy(true);
+    try {
+      const { clientToken } = await (await fetch('/api/client-token')).json();
+      await loadScript('https://js.braintreegateway.com/web/dropin/1.43.0/js/dropin.min.js');
+      if (instRef.current) { await instRef.current.teardown().catch(() => {}); instRef.current = null; }
+      instRef.current = await window.braintree.dropin.create({ authorization: clientToken, container: dropinRef.current });
+    } catch (e) { setErr('Payment form failed to load. Please retry.'); setStage('pick'); }
+    setBusy(false);
+  }
+
+  async function pay() {
+    setErr(''); setBusy(true);
+    try {
+      const { nonce } = await instRef.current.requestPaymentMethod();
+      await submit(nonce);
+    } catch (e) { setErr('Please complete the card details.'); setBusy(false); }
+  }
+
+  async function submit(nonce) {
     setBusy(true); setErr('');
-    const body = {
-      adminPin: pin, id: f.id, name: f.name.trim(), description: f.description,
-      price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
-      admits: f.admits, max_qty: f.max_qty === '' ? null : f.max_qty,
-      is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
-    };
-    const res = await fetch('/api/admin/tickets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    setBusy(false); if (res.ok) onSaved(editing ? 'Ticket updated' : 'Ticket created'); else setErr('Save failed.');
-  };
-  const del = async () => {
-    if (!confirm('Delete this ticket type?')) return;
-    setBusy(true);
-    const res = await fetch('/api/admin/tickets', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id: f.id }) });
-    const d = await res.json(); setBusy(false);
-    onSaved(d.deactivated ? 'Had sales — turned off instead' : 'Ticket deleted');
-  };
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketTypeId: tier.id, qty, buyer, paymentMethodNonce: nonce }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        if (data.error === 'sold_out') { setErr('Sorry — that ticket just sold out.'); setStage('pick'); }
+        else setErr(data.message || 'Payment could not be completed.');
+        setBusy(false); return;
+      }
+      setTicket({ ...data, name: buyer.name, typeName: tier.name, qty });
+      setStage('done');
+    } catch (e) { setErr('Something went wrong. Please try again.'); }
+    setBusy(false);
+  }
+
+  if (err && !ev && stage === 'pick') return <div className="wrap"><div className="card">{err}</div></div>;
+  if (!ev) return <div className="wrap"><div className="card">Loading…</div></div>;
+
+  if (stage === 'done' && ticket) return (
+    <div className="wrap">
+      <div className="eyebrow">You're in</div>
+      <div className="pass">
+        <div className="body">
+          <div className="brandline">🎟 {ev.name}</div>
+          <div className="who">{ticket.name}</div>
+          <span className="type">{ticket.typeName}{ticket.qty > 1 ? ` × ${ticket.qty}` : ''}</span>
+          <p className="hint" style={{ marginTop: 14 }}>{ev.date || 'Date TBA'} · {ev.venue || ''}</p>
+          <p className="hint">A copy is on its way to {buyer.email}. Food coupons are issued at check-in.</p>
+        </div>
+        <div className="stub">
+          <div className="qrbox"><canvas ref={qrRef} /></div>
+          <div className="code">{ticket.code}</div>
+        </div>
+      </div>
+      <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }}
+        onClick={() => { setTicket(null); setSel(null); setQty(1); setBuyer({ name: '', email: '', phone: '' }); setStage('pick'); }}>
+        Buy another ticket
+      </button>
+    </div>
+  );
+
+  if (stage === 'pay') return (
+    <div className="wrap">
+      <div className="eyebrow">Payment</div>
+      <div className="card stack">
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div><b>{tier.name}</b>{qty > 1 ? ` × ${qty}` : ''}<div className="hint">{buyer.name} · {buyer.email}</div></div>
+          <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: 22 }}>{money(amountCents)}</div>
+        </div>
+        <div ref={dropinRef} />
+        {err && <div className="err">{err}</div>}
+        <button className="btn btn-go btn-block" disabled={busy} onClick={pay}>{busy ? 'Processing…' : `Pay ${money(amountCents)}`}</button>
+        <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => { setStage('pick'); setErr(''); }}>Back</button>
+      </div>
+    </div>
+  );
 
   return (
-    <Sheet title={editing ? 'Edit ticket' : 'New ticket'} onClose={onClose}
-      footer={<>
-        {editing && <button className="btn btn-ghost" disabled={busy} onClick={del}>Delete</button>}
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary grow" disabled={busy} onClick={save}>{editing ? 'Save changes' : 'Create ticket'}</button>
-      </>}>
-      <div><label className="f">Ticket name</label>
-        <input value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Adult, Family (up to 4)" autoFocus /></div>
+    <div className="wrap">
+      <div className="eyebrow">{ev.name}{ev.date ? ` · ${ev.date}` : ''}</div>
+      <div className="stack">
+        <div>
+          <label className="f">Choose your ticket</label>
+          <div className="stack">
+            {ev.ticketTypes.map((t) => (
+              <div key={t.id} className={`tier ${sel === t.id ? 'on' : ''} ${t.soldOut ? 'out' : ''}`}
+                onClick={() => !t.soldOut && setSel(t.id)}>
+                <div className="radio" />
+                <div className="grow">
+                  <div className="nm">{t.name}</div>
+                  {t.description && <div className="ds">{t.description}</div>}
+                  {t.admits > 1 && <div className="ds">Admits {t.admits} people</div>}
+                  {t.remaining != null && t.remaining <= 25 && !t.soldOut && <div className="ds">Only {t.remaining} left</div>}
+                  {t.soldOut && <div className="ds">Sold out</div>}
+                </div>
+                <div className="pr">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      <div className="row">
-        <div className="grow"><label className="f">Price</label>
-          <div className="pricewrap"><span>$</span>
-            <input type="number" min="0" step="1" value={f.is_comp ? 0 : f.priceDollars}
-              onChange={(e) => set('priceDollars', e.target.value)} disabled={f.is_comp} /></div></div>
-        <div className="grow"><label className="f">Tickets available</label>
-          <input type="number" min="0" step="1" value={f.max_qty} onChange={(e) => set('max_qty', e.target.value)} placeholder="unlimited" /></div>
-      </div>
-
-      <div><label className="f">Description</label>
-        <input value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="What's included" /></div>
-
-      <div className="allot-row">
-        <div><div style={{ fontWeight: 600 }}>Group size</div><div className="hint" style={{ margin: 0 }}>People one ticket admits</div></div>
-        <Stepper value={f.admits} min={1} onChange={(v) => set('admits', v)} />
-      </div>
-
-      <label className="allot-row switch" style={{ cursor: 'pointer' }}>
-        <div><div style={{ fontWeight: 600 }}>Comp ticket</div><div className="hint" style={{ margin: 0 }}>Volunteers / performers — no payment</div></div>
-        <span><input type="checkbox" checked={f.is_comp} onChange={(e) => set('is_comp', e.target.checked)} /><span className="track"><span className="knob" /></span></span>
-      </label>
-
-      <div>
-        <label className="f">Food coupons included (total per ticket)</label>
-        {coupons.length === 0
-          ? <div className="hint">No coupon types yet — add some under “Manage”.</div>
-          : coupons.map((c) => (
-            <div key={c.id} className="allot-row">
-              <span>{c.name}</span>
-              <Stepper value={f.allot?.[c.id] || 0} onChange={(v) => setAllot(c.id, v)} />
+        {tier && (
+          <div className="card stack">
+            <div className="row">
+              <div className="grow"><label className="f">Full name</label>
+                <input value={buyer.name} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} placeholder="Jane Rao" /></div>
+              <div style={{ width: 110 }}><label className="f">Qty</label>
+                <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, +e.target.value || 1))} /></div>
             </div>
-          ))}
+            <div><label className="f">Email</label>
+              <input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" /></div>
+            <div><label className="f">Phone (optional)</label>
+              <input value={buyer.phone} onChange={(e) => setBuyer({ ...buyer, phone: e.target.value })} placeholder="(469) …" /></div>
+            {err && <div className="err">{err}</div>}
+            <button className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
+              {isPaid ? `Continue to payment · ${money(amountCents)}` : 'Get ticket'}
+            </button>
+          </div>
+        )}
       </div>
-
-      {editing && (
-        <label className="allot-row switch" style={{ cursor: 'pointer' }}>
-          <div><div style={{ fontWeight: 600 }}>Active</div><div className="hint" style={{ margin: 0 }}>Show this ticket to buyers</div></div>
-          <span><input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /><span className="track"><span className="knob" /></span></span>
-        </label>
-      )}
-
-      {err && <div className="err">{err}</div>}
-    </Sheet>
+    </div>
   );
 }

@@ -27,5 +27,5 @@ export async function GET(req) {
     where tt.event_id=${event.id}
     group by tt.id order by tt.sort, tt.name`;
 
-  return Response.json({ event, couponTypes, ticketTypes });
+  return Response.json({ event, couponTypes, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
 }

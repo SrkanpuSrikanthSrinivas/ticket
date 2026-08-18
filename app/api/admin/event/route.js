@@ -1,23 +1,28 @@
 export const dynamic = 'force-dynamic';
 
-import { sql } from '../../../../lib/db';
+import { sql } from '../../../lib/db';
 
-// Admin: create or update the event details.
-export async function POST(req) {
-  const { adminPin, name, date, venue, tagline } = await req.json().catch(() => ({}));
-  if (adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
-  if (!name) return Response.json({ error: 'name_required' }, { status: 400 });
+// Public: the current event + its active ticket tiers with remaining capacity.
+// The embedded buyer flow renders from this.
+export async function GET() {
+  const ev = (await sql`select id, name, event_date, venue, tagline
+                        from events order by created_at desc limit 1`)[0];
+  if (!ev) return Response.json({ error: 'no_event' }, { status: 404 });
 
-  const existing = (await sql`select id from events order by created_at desc limit 1`)[0];
-  let row;
-  if (existing) {
-    row = (await sql`update events set name=${name}, event_date=${date || null},
-                     venue=${venue || null}, tagline=${tagline || null}
-                     where id=${existing.id} returning id`)[0];
-  } else {
-    row = (await sql`insert into events (name, event_date, venue, tagline)
-                     values (${name}, ${date || null}, ${venue || null}, ${tagline || null})
-                     returning id`)[0];
-  }
-  return Response.json({ ok: true, id: row.id });
+  const tiers = await sql`
+    select tt.id, tt.name, tt.description, tt.price_cents, tt.admits, tt.is_comp, tt.max_qty,
+           coalesce((select sum(qty) from tickets t
+                     where t.ticket_type_id=tt.id and t.status <> 'void'),0)::int as sold
+    from ticket_types tt
+    where tt.event_id=${ev.id} and tt.active=true
+    order by tt.sort, tt.name`;
+
+  const ticketTypes = tiers.map((t) => ({
+    id: t.id, name: t.name, description: t.description,
+    price_cents: t.price_cents, is_comp: t.is_comp, admits: t.admits,
+    remaining: t.max_qty == null ? null : Math.max(0, t.max_qty - t.sold),
+    soldOut: t.max_qty != null && t.sold >= t.max_qty,
+  }));
+
+  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
 }
