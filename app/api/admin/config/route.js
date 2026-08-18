@@ -18,8 +18,8 @@ export async function GET(req) {
   const ticketTypes = await sql`
     select tt.id, tt.name, tt.description, tt.price_cents, tt.admits, tt.max_qty,
            tt.is_comp, tt.active, tt.sort,
-           coalesce(json_object_agg(a.coupon_type_id, a.qty_per_guest)
-                    filter (where a.coupon_type_id is not null), '{}') as allot,
+           coalesce(json_object_agg(a.coupon_type_id::text, a.qty_per_guest)
+                    filter (where a.coupon_type_id is not null), '{}'::json) as allot,
            coalesce((select sum(qty) from tickets t
                      where t.ticket_type_id=tt.id and t.status <> 'void'),0)::int as sold
     from ticket_types tt
