@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { randomUUID } from 'crypto';
 import { sql } from '../../../../lib/db';
 
-const BUILD = 'diag-2';
+const BUILD = 'direct-forced-1';
 
 // Deep diagnostic: figures out WHY an UPDATE might not persist.
 // Visit /api/admin/selftest?pin=YOURADMINPIN and send back the JSON.
@@ -13,8 +14,10 @@ export async function GET(req) {
 
   const out = { build: BUILD, steps: {}, diag: {} };
   const url = process.env.DATABASE_URL || '';
-  out.db_host = (url.match(/@([^/]+)\//) || [])[1] || 'unknown';
-  out.using_pooled_endpoint = /-pooler\./.test(url);
+  const effective = url.replace(/-pooler\./, '.');
+  out.env_host = (url.match(/@([^/]+)\//) || [])[1] || 'unknown';
+  out.effective_host = (effective.match(/@([^/]+)\//) || [])[1] || 'unknown';
+  out.using_pooled_endpoint = /-pooler\./.test(effective); // should now be false
 
   try {
     const ev = await sql`select id, name from events order by created_at desc`;
