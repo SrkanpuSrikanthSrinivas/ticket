@@ -49,7 +49,7 @@ export default function Buy() {
       const { clientToken } = await (await fetch('/api/client-token')).json();
       await loadScript('https://js.braintreegateway.com/web/dropin/1.43.0/js/dropin.min.js');
       if (instRef.current) { await instRef.current.teardown().catch(() => {}); instRef.current = null; }
-      instRef.current = await window.braintree.dropin.create({ authorization: clientToken, container: dropinRef.current });
+      instRef.current = await window.braintree.dropin.create({ authorization: clientToken, container: dropinRef.current, card: { cardholderName: { required: true } } });
     } catch (e) { setErr('Payment form failed to load. Please retry.'); setStage('pick'); }
     setBusy(false);
   }
@@ -76,6 +76,7 @@ export default function Buy() {
         setBusy(false); return;
       }
       setTicket({ ...data, name: buyer.name, typeName: tier.name, qty });
+      if (instRef.current) { try { await instRef.current.teardown(); } catch (e) {} instRef.current = null; }
       setStage('done');
     } catch (e) { setErr('Something went wrong. Please try again.'); }
     setBusy(false);

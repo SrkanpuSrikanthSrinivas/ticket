@@ -7,6 +7,8 @@ create table if not exists events (
   event_date text,
   venue text,
   tagline text,
+  email_subject text,
+  email_body text,
   created_at timestamptz default now()
 );
 

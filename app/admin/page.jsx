@@ -93,6 +93,13 @@ export default function Admin() {
           </div>
         </div>
 
+        <div className="section-h"><div className="eyebrow">Confirmation email</div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'email' })}>Edit</button></div>
+        <div className="card summary"><div className="grow">
+          <div className="s1">{ev?.email_subject || 'Your {event} ticket'}</div>
+          <div className="s2">Sent to each buyer with their QR ticket — edit the wording anytime</div>
+        </div></div>
+
         <div className="section-h"><div className="eyebrow">Food coupon denominations</div>
           <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'coupons' })}>Manage</button></div>
         <div className="card">
@@ -122,6 +129,8 @@ export default function Admin() {
       {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)}
         onSaved={(patch) => { setEvent(patch); setModal(null); flash('Event saved'); }} />}
       {modal?.kind === 'coupons' && <CouponsModal pin={pin} coupons={coupons} onClose={() => setModal(null)} onSync={setCoupons} />}
+      {modal?.kind === 'email' && <EmailModal pin={pin} event={ev} onClose={() => setModal(null)}
+        onSaved={(patch) => { setEvent(patch); setModal(null); flash('Email saved'); }} />}
       {modal?.kind === 'ticket' && <TicketModal pin={pin} ticket={modal.ticket} coupons={coupons} onClose={() => setModal(null)}
         onSaved={(m, patch) => { applyTicket(patch); setModal(null); flash(m); }} />}
     </div>
@@ -161,6 +170,33 @@ function EventModal({ pin, event, onClose, onSaved }) {
         <div className="grow"><label className="f">Venue</label><input value={f.venue} onChange={(e) => setF({ ...f, venue: e.target.value })} placeholder="Community Hall" /></div>
       </div>
       <div><label className="f">Welcome line (on the ticket)</label><input value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} /></div>
+      {err && <div className="err">{err}</div>}
+    </Sheet>
+  );
+}
+
+function EmailModal({ pin, event, onClose, onSaved }) {
+  const [f, setF] = useState({
+    subject: event?.email_subject || 'Your {event} ticket',
+    body: event?.email_body || 'Namaskara {name},\n\nYour ticket for {event} is confirmed. Show the QR code below at the gate — your {ticket_type} admits you, and food coupons are issued at check-in.\n\nSee you there!',
+  });
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const save = async () => {
+    setBusy(true);
+    const { ok, data } = await post('/api/admin/email', { adminPin: pin, email_subject: f.subject, email_body: f.body });
+    setBusy(false);
+    if (ok) onSaved({ email_subject: f.subject, email_body: f.body });
+    else setErr(data.message || 'Save failed.');
+  };
+  return (
+    <Sheet title="Confirmation email" onClose={onClose}
+      footer={<><button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary grow" disabled={busy} onClick={save}>Save</button></>}>
+      <div className="hint">Placeholders you can use: {'{name}'} {'{event}'} {'{ticket_type}'} {'{code}'} {'{qty}'} {'{date}'} {'{venue}'}. Blank lines start new paragraphs.</div>
+      <div><label className="f">Subject</label><input value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} /></div>
+      <div><label className="f">Message</label>
+        <textarea rows={9} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })}
+          style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} /></div>
       {err && <div className="err">{err}</div>}
     </Sheet>
   );

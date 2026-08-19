@@ -23,7 +23,8 @@ export async function POST(req) {
     return Response.json({ error: 'missing_fields' }, { status: 400 });
 
   const tt = (await sql`
-    select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, e.name as event_name
+    select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp,
+           e.name as event_name, e.event_date, e.venue, e.email_subject, e.email_body
     from ticket_types tt join events e on e.id = tt.event_id
     where tt.id=${ticketTypeId} and tt.active=true`)[0];
   if (!tt) return Response.json({ error: 'ticket_type_unavailable' }, { status: 404 });
@@ -62,9 +63,12 @@ export async function POST(req) {
   }
 
   const token = signTicket(ticketId);
+  const baseUrl = new URL(req.url).origin;
   sendTicketEmail({
-    to: buyer.email, buyerName: buyer.name, eventName: tt.event_name,
-    ticketTypeName: tt.name, code, token, qty: units,
+    to: buyer.email, buyerName: buyer.name,
+    event: { name: tt.event_name, event_date: tt.event_date, venue: tt.venue,
+             email_subject: tt.email_subject, email_body: tt.email_body },
+    ticketTypeName: tt.name, code, token, qty: units, baseUrl,
   }).catch((e) => console.error('email failed', e));
 
   return Response.json({ ok: true, code, token, ticketId });
