@@ -19,7 +19,19 @@ export default function Admin() {
   }
   useEffect(() => { if (authed) load(); }, [authed]);
   function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 2600); }
-  async function afterSave(m) { setModal(null); await load(); flash(m); }
+  function applyLocal(patch) {
+    setCfg((prev) => {
+      if (!prev) return prev;
+      let list = [...(prev.ticketTypes || [])];
+      if (patch.remove) list = list.filter((x) => x.id !== patch.remove);
+      else if (patch.ticket) {
+        const i = list.findIndex((x) => x.id === patch.ticket.id);
+        if (i >= 0) list[i] = { ...list[i], ...patch.ticket }; else list.push(patch.ticket);
+      }
+      return { ...prev, ticketTypes: list };
+    });
+  }
+  async function afterSave(m, patch) { if (patch) applyLocal(patch); else await load(); setModal(null); flash(m); }
 
   if (!authed) {
     const press = (n) => setPin((pin + n).slice(0, 6));
@@ -102,7 +114,7 @@ export default function Admin() {
       {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)} onSaved={() => afterSave('Event saved')} onErr={flash} />}
       {modal?.kind === 'coupons' && <CouponsModal pin={pin} coupons={coupons} onClose={() => setModal(null)} onChanged={load} />}
       {modal?.kind === 'ticket' && <TicketModal pin={pin} ticket={modal.ticket} coupons={coupons}
-        onClose={() => setModal(null)} onSaved={(m) => afterSave(m)} />}
+        onClose={() => setModal(null)} onSaved={(m, patch) => afterSave(m, patch)} />}
     </div>
   );
 }
@@ -227,15 +239,24 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
       is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
     });
     setBusy(false);
-    if (ok) onSaved(editing ? 'Ticket updated' : 'Ticket created');
-    else setErr(data.message || 'Save failed.');
+    if (ok) {
+      const saved = {
+        id: data.id, name: f.name.trim(), description: f.description,
+        price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
+        admits: f.admits, max_qty: f.max_qty === '' ? null : (parseInt(f.max_qty, 10) || null),
+        is_comp: f.is_comp, active: f.active, sort: f.sort, allot: { ...f.allot },
+        sold: ticket?.sold || 0,
+      };
+      onSaved(editing ? 'Ticket updated' : 'Ticket created', { ticket: saved });
+    } else setErr(data.message || 'Save failed.');
   };
   const del = async () => {
     if (!confirm('Delete this ticket type?')) return;
     setBusy(true);
     const res = await fetch('/api/admin/tickets', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id: f.id }) });
     const d = await res.json(); setBusy(false);
-    onSaved(d.deactivated ? 'Had sales — turned off instead' : 'Ticket deleted');
+    if (d.deactivated) onSaved('Had sales — turned off instead', { ticket: { ...ticket, active: false } });
+    else onSaved('Ticket deleted', { remove: f.id });
   };
 
   return (
