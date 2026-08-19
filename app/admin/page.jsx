@@ -181,6 +181,13 @@ function EmailModal({ pin, event, onClose, onSaved }) {
     body: event?.email_body || 'Namaskara {name},\n\nYour ticket for {event} is confirmed. Show the QR code below at the gate — your {ticket_type} admits you, and food coupons are issued at check-in.\n\nSee you there!',
   });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const [testTo, setTestTo] = useState(''); const [testMsg, setTestMsg] = useState('');
+  const sendTest = async () => {
+    if (!testTo) return setTestMsg('Enter an email address.');
+    setTestMsg('Sending…');
+    const { data } = await post('/api/admin/test-email', { adminPin: pin, to: testTo, subject: f.subject, body: f.body });
+    setTestMsg(data.result || 'Done.');
+  };
   const save = async () => {
     setBusy(true);
     const { ok, data } = await post('/api/admin/email', { adminPin: pin, email_subject: f.subject, email_body: f.body });
@@ -197,6 +204,13 @@ function EmailModal({ pin, event, onClose, onSaved }) {
       <div><label className="f">Message</label>
         <textarea rows={9} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })}
           style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} /></div>
+      <div className="divider" />
+      <label className="f">Send a test (uses the wording above)</label>
+      <div className="row" style={{ gap: 8 }}>
+        <input className="grow" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="you@email.com" />
+        <button className="btn btn-ghost" type="button" onClick={sendTest}>Send test</button>
+      </div>
+      {testMsg && <div className="hint" style={{ marginTop: 8 }}>{testMsg}</div>}
       {err && <div className="err">{err}</div>}
     </Sheet>
   );
