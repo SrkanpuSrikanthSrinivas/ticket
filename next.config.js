@@ -1,18 +1,23 @@
 /** @type {import('next').NextConfig} */
-const EMBED = process.env.EMBED_ORIGIN || 'https://mkant.org';
 
-// Allowing the MKANT origin as a frame-ancestor is what actually lets the buyer
-// flow render inside their <iframe>. Without this, browsers block the embed.
-// Next.js sends no X-Frame-Options by default, so this CSP is the only gate.
+// Which site(s) may embed the buyer flow in an <iframe>. Comma-separated.
+// e.g. EMBED_ORIGIN="https://mallige.org,https://www.mallige.org"
+// Set EMBED_ORIGIN="*" to allow embedding on ANY site (public buyer page only).
+// NOTE: next.config runs at BUILD time, so after changing EMBED_ORIGIN you must redeploy.
+const raw = (process.env.EMBED_ORIGIN || '').trim();
+const buyerAncestors = raw === '*'
+  ? '*'
+  : ["'self'", ...raw.split(',').map((s) => s.trim()).filter(Boolean)].join(' ');
+
 const nextConfig = {
   async headers() {
     return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'Content-Security-Policy', value: `frame-ancestors 'self' ${EMBED} https://*.mkant.org` },
-        ],
-      },
+      // Buyer flow (/) — embeddable by the configured site(s).
+      { source: '/', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors ${buyerAncestors || "'self'"};` }] },
+      // Staff & admin — never embeddable by third parties.
+      { source: '/admin', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
+      { source: '/gate',  headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
+      { source: '/stall', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
     ];
   },
 };
