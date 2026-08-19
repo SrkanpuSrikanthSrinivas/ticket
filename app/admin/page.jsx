@@ -3,6 +3,12 @@ import { useEffect, useState } from 'react';
 
 const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 
+async function post(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+  let data = {}; try { data = await res.json(); } catch {}
+  return { ok: res.ok, data };
+}
+
 export default function Admin() {
   const [pin, setPin] = useState('');
   const [authed, setAuthed] = useState(false);
@@ -19,7 +25,9 @@ export default function Admin() {
   }
   useEffect(() => { if (authed) load(); }, [authed]);
   function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 2600); }
-  function applyLocal(patch) {
+
+  // --- optimistic local state so the UI reflects a confirmed save instantly ---
+  function applyTicket(patch) {
     setCfg((prev) => {
       if (!prev) return prev;
       let list = [...(prev.ticketTypes || [])];
@@ -31,7 +39,8 @@ export default function Admin() {
       return { ...prev, ticketTypes: list };
     });
   }
-  async function afterSave(m, patch) { if (patch) applyLocal(patch); else await load(); setModal(null); flash(m); }
+  const setCoupons = (listOrFn) => setCfg((prev) => prev ? { ...prev, couponTypes: typeof listOrFn === 'function' ? listOrFn(prev.couponTypes || []) : listOrFn } : prev);
+  const setEvent = (patch) => setCfg((prev) => prev ? { ...prev, event: { ...prev.event, ...patch } } : prev);
 
   if (!authed) {
     const press = (n) => setPin((pin + n).slice(0, 6));
@@ -62,8 +71,7 @@ export default function Admin() {
   const foodValue = (t) => coupons.reduce((s, c) => s + (t.allot?.[c.id] || 0) * (c.value_cents || 0), 0);
   const couponSummary = (t) => {
     const parts = coupons.filter((c) => (t.allot?.[c.id] || 0) > 0).map((c) => `${c.name}×${t.allot[c.id]}`);
-    const fv = foodValue(t);
-    return parts.length ? `${money(fv)} food · ${parts.join(', ')}` : 'No food coupons';
+    return parts.length ? `${money(foodValue(t))} food · ${parts.join(', ')}` : 'No food coupons';
   };
   const availText = (t) => {
     const cap = t.max_qty == null ? 'Unlimited' : `${t.max_qty} available`;
@@ -89,7 +97,7 @@ export default function Admin() {
           <button className="btn btn-ghost btn-sm" onClick={() => setModal({ kind: 'coupons' })}>Manage</button></div>
         <div className="card">
           {coupons.length ? coupons.map((c) => <span key={c.id} className="cchip">{c.name} · {money(c.value_cents)}</span>)
-            : <div className="hint">No denominations yet. Add $2, $5, $8, $10…</div>}
+            : <div className="hint">No denominations yet. Tap Manage to add $2, $5, $8, $10…</div>}
         </div>
 
         <div className="section-h"><div className="eyebrow">Ticket types</div>
@@ -111,18 +119,13 @@ export default function Admin() {
         ))}
       </div>
 
-      {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)} onSaved={() => afterSave('Event saved')} onErr={flash} />}
-      {modal?.kind === 'coupons' && <CouponsModal pin={pin} coupons={coupons} onClose={() => setModal(null)} onChanged={load} />}
-      {modal?.kind === 'ticket' && <TicketModal pin={pin} ticket={modal.ticket} coupons={coupons}
-        onClose={() => setModal(null)} onSaved={(m, patch) => afterSave(m, patch)} />}
+      {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)}
+        onSaved={(patch) => { setEvent(patch); setModal(null); flash('Event saved'); }} />}
+      {modal?.kind === 'coupons' && <CouponsModal pin={pin} coupons={coupons} onClose={() => setModal(null)} onSync={setCoupons} />}
+      {modal?.kind === 'ticket' && <TicketModal pin={pin} ticket={modal.ticket} coupons={coupons} onClose={() => setModal(null)}
+        onSaved={(m, patch) => { applyTicket(patch); setModal(null); flash(m); }} />}
     </div>
   );
-}
-
-async function post(url, body) {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
-  let data = {}; try { data = await res.json(); } catch {}
-  return { ok: res.ok, data };
 }
 
 function Sheet({ title, onClose, children, footer }) {
@@ -144,7 +147,9 @@ function EventModal({ pin, event, onClose, onSaved }) {
     if (!f.name.trim()) return setErr('Event name is required.');
     setBusy(true);
     const { ok, data } = await post('/api/admin/event', { adminPin: pin, ...f });
-    setBusy(false); if (ok) onSaved(); else setErr(data.message || 'Save failed.');
+    setBusy(false);
+    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, venue: f.venue, tagline: f.tagline });
+    else setErr(data.message || 'Save failed.');
   };
   return (
     <Sheet title="Event details" onClose={onClose}
@@ -161,36 +166,55 @@ function EventModal({ pin, event, onClose, onSaved }) {
   );
 }
 
-function CouponsModal({ pin, coupons, onClose, onChanged }) {
+function CouponsModal({ pin, coupons, onClose, onSync }) {
+  const [list, setList] = useState(() => coupons.map((c) => ({ ...c })));
   const [name, setName] = useState(''); const [dollars, setDollars] = useState('');
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+
+  const editLocal = (id, patch) => setList((prev) => prev.map((c) => c.id === id ? { ...c, ...patch } : c));
+
+  const persist = async (id) => {
+    const c = list.find((x) => x.id === id); if (!c) return;
+    const { ok, data } = await post('/api/admin/coupons', { adminPin: pin, id, name: c.name, value_cents: c.value_cents });
+    if (ok) { onSync(list); setErr(''); } else setErr(data.message || 'Could not save that coupon.');
+  };
+
   const add = async () => {
     const v = Math.round((Number(dollars) || 0) * 100);
-    if (!name.trim() && !v) return setErr('Give it a label and a value.');
+    const label = name.trim() || `$${v / 100}`;
+    if (!v && !name.trim()) return setErr('Enter a label and/or a dollar value.');
     setBusy(true);
-    const { ok, data } = await post('/api/admin/coupons', { adminPin: pin, name: name.trim() || `$${(v / 100)}`, value_cents: v });
+    const { ok, data } = await post('/api/admin/coupons', { adminPin: pin, name: label, value_cents: v });
     setBusy(false);
-    if (ok) { setName(''); setDollars(''); setErr(''); onChanged(); } else setErr(data.message || 'Could not add.');
+    if (ok) { const nl = [...list, { id: data.id, name: label, value_cents: v }]; setList(nl); onSync(nl); setName(''); setDollars(''); setErr(''); }
+    else setErr(data.message || 'Could not add.');
   };
-  const saveOne = async (c, patch) => { await post('/api/admin/coupons', { adminPin: pin, id: c.id, name: patch.name ?? c.name, value_cents: patch.value_cents ?? c.value_cents }); onChanged(); };
-  const remove = async (id) => { const { ok } = await post('/api/admin/coupons', { adminPin: pin, id }); if (!ok) {} 
-    await fetch('/api/admin/coupons', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id }) }); onChanged(); };
+
+  const remove = async (id) => {
+    setBusy(true);
+    const res = await fetch('/api/admin/coupons', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id }) });
+    setBusy(false);
+    if (res.ok) { const nl = list.filter((c) => c.id !== id); setList(nl); onSync(nl); setErr(''); }
+    else { const d = await res.json().catch(() => ({})); setErr(d.message || 'Coupons already issued — cannot remove.'); }
+  };
+
   return (
     <Sheet title="Food coupon denominations" onClose={onClose} footer={<button className="btn btn-primary btn-block" onClick={onClose}>Done</button>}>
-      <div className="hint">These are the coupon values guests spend at food stalls — like $2, $5, $8, $10.</div>
-      {coupons.map((c) => (
+      <div className="hint">The coupon values guests spend at food stalls — $2, $5, $8, $10. Edit a value and tap away to save.</div>
+      {list.map((c) => (
         <div key={c.id} className="row" style={{ alignItems: 'center', gap: 8 }}>
-          <input className="grow" defaultValue={c.name} onBlur={(e) => e.target.value.trim() !== c.name && saveOne(c, { name: e.target.value.trim() })} />
-          <div className="pricewrap" style={{ width: 100 }}><span>$</span>
-            <input type="number" min="0" step="1" defaultValue={(c.value_cents || 0) / 100}
-              onBlur={(e) => saveOne(c, { value_cents: Math.round((Number(e.target.value) || 0) * 100) })} /></div>
-          <button className="btn btn-ghost btn-sm" onClick={() => remove(c.id)}>✕</button>
+          <input className="grow" value={c.name} onChange={(e) => editLocal(c.id, { name: e.target.value })} onBlur={() => persist(c.id)} />
+          <div className="pricewrap" style={{ width: 96 }}><span>$</span>
+            <input type="number" min="0" step="1" value={(c.value_cents || 0) / 100}
+              onChange={(e) => editLocal(c.id, { value_cents: Math.round((Number(e.target.value) || 0) * 100) })}
+              onBlur={() => persist(c.id)} /></div>
+          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => remove(c.id)}>✕</button>
         </div>
       ))}
       <div className="divider" />
       <div className="row" style={{ gap: 8 }}>
         <input className="grow" value={name} onChange={(e) => setName(e.target.value)} placeholder="Label (e.g. $5 coupon)" />
-        <div className="pricewrap" style={{ width: 100 }}><span>$</span>
+        <div className="pricewrap" style={{ width: 96 }}><span>$</span>
           <input type="number" min="0" step="1" value={dollars} onChange={(e) => setDollars(e.target.value)} placeholder="5" /></div>
       </div>
       <button className="btn btn-ghost btn-block" disabled={busy} onClick={add}>Add denomination</button>
@@ -213,16 +237,9 @@ function Stepper({ value, onChange, min = 0 }) {
 function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
   const editing = !!ticket?.id;
   const [f, setF] = useState({
-    id: ticket?.id,
-    name: ticket?.name || '',
-    priceDollars: ticket ? (ticket.price_cents || 0) / 100 : 0,
-    description: ticket?.description || '',
-    admits: ticket?.admits || 1,
-    max_qty: ticket?.max_qty ?? '',
-    is_comp: !!ticket?.is_comp,
-    active: ticket?.active !== false,
-    sort: ticket?.sort || 0,
-    allot: { ...(ticket?.allot || {}) },
+    id: ticket?.id, name: ticket?.name || '', priceDollars: ticket ? (ticket.price_cents || 0) / 100 : 0,
+    description: ticket?.description || '', admits: ticket?.admits || 1, max_qty: ticket?.max_qty ?? '',
+    is_comp: !!ticket?.is_comp, active: ticket?.active !== false, sort: ticket?.sort || 0, allot: { ...(ticket?.allot || {}) },
   });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -235,8 +252,7 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
     const { ok, data } = await post('/api/admin/tickets', {
       adminPin: pin, id: f.id, name: f.name.trim(), description: f.description,
       price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
-      admits: f.admits, max_qty: f.max_qty === '' ? null : f.max_qty,
-      is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
+      admits: f.admits, max_qty: f.max_qty === '' ? null : f.max_qty, is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
     });
     setBusy(false);
     if (ok) {
@@ -244,8 +260,7 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
         id: data.id, name: f.name.trim(), description: f.description,
         price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
         admits: f.admits, max_qty: f.max_qty === '' ? null : (parseInt(f.max_qty, 10) || null),
-        is_comp: f.is_comp, active: f.active, sort: f.sort, allot: { ...f.allot },
-        sold: ticket?.sold || 0,
+        is_comp: f.is_comp, active: f.active, sort: f.sort, allot: { ...f.allot }, sold: ticket?.sold || 0,
       };
       onSaved(editing ? 'Ticket updated' : 'Ticket created', { ticket: saved });
     } else setErr(data.message || 'Save failed.');
@@ -268,36 +283,29 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
       </>}>
       <div><label className="f">Ticket name</label>
         <input value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Adult, Family (up to 4)" autoFocus /></div>
-
       <div className="row">
         <div className="grow"><label className="f">Price</label>
           <div className="pricewrap"><span>$</span>
-            <input type="number" min="0" step="1" value={f.is_comp ? 0 : f.priceDollars}
-              onChange={(e) => set('priceDollars', e.target.value)} disabled={f.is_comp} /></div></div>
+            <input type="number" min="0" step="1" value={f.is_comp ? 0 : f.priceDollars} onChange={(e) => set('priceDollars', e.target.value)} disabled={f.is_comp} /></div></div>
         <div className="grow"><label className="f">Tickets available</label>
           <input type="number" min="0" step="1" value={f.max_qty} onChange={(e) => set('max_qty', e.target.value)} placeholder="unlimited" /></div>
       </div>
-
       <div><label className="f">Description</label>
         <input value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="What's included" /></div>
-
       <div className="allot-row">
         <div><div style={{ fontWeight: 600 }}>Group size</div><div className="hint" style={{ margin: 0 }}>People one ticket admits</div></div>
         <Stepper value={f.admits} min={1} onChange={(v) => set('admits', v)} />
       </div>
-
       <label className="allot-row switch" style={{ cursor: 'pointer' }}>
         <div><div style={{ fontWeight: 600 }}>Comp ticket</div><div className="hint" style={{ margin: 0 }}>Volunteers / performers — no payment</div></div>
         <span><input type="checkbox" checked={f.is_comp} onChange={(e) => set('is_comp', e.target.checked)} /><span className="track"><span className="knob" /></span></span>
       </label>
-
       <div>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <label className="f" style={{ margin: 0 }}>Food coupons included</label>
           <span style={{ fontWeight: 700, color: 'var(--marigold-ink)' }}>{money(foodTotal)} total</span>
         </div>
-        {coupons.length === 0
-          ? <div className="hint">No denominations yet — add some under “Manage”.</div>
+        {coupons.length === 0 ? <div className="hint">No denominations yet — add some under “Manage”.</div>
           : coupons.map((c) => (
             <div key={c.id} className="allot-row">
               <span>{c.name} <span className="hint" style={{ margin: 0 }}>({money(c.value_cents)})</span></span>
@@ -305,14 +313,12 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
             </div>
           ))}
       </div>
-
       {editing && (
         <label className="allot-row switch" style={{ cursor: 'pointer' }}>
           <div><div style={{ fontWeight: 600 }}>Active</div><div className="hint" style={{ margin: 0 }}>Show this ticket to buyers</div></div>
           <span><input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /><span className="track"><span className="knob" /></span></span>
         </label>
       )}
-
       {err && <div className="err">{err}</div>}
     </Sheet>
   );

@@ -24,6 +24,23 @@ export async function GET(req) {
     out.steps.read = 'ok';
   } catch (e) { out.steps.read = 'FAIL: ' + String(e?.message || e); return Response.json(out, { status: 500 }); }
 
+  // Cross-request write test: /api/admin/selftest?pin=..&action=write writes a marker,
+  // then reload WITHOUT action=write to see if it stuck (proves durable persistence).
+  const action = new URL(req.url).searchParams.get('action');
+  if (out.current_event) {
+    if (action === 'write') {
+      try {
+        const marker = 'DIAGWRITE-' + Date.now();
+        const r = await sql`update events set tagline=${marker} where id=${out.current_event.id} returning tagline`;
+        return Response.json({ build: BUILD, wrote_marker: marker, update_returned: r[0]?.tagline,
+          using_pooled_endpoint: out.using_pooled_endpoint,
+          instruction: 'Now reload this URL WITHOUT &action=write. If current_tagline equals wrote_marker, writes persist across requests. Reset the welcome line in /admin afterward.' },
+          { headers: { 'Cache-Control': 'no-store' } });
+      } catch (e) { return Response.json({ error: 'write_failed', message: String(e?.message || e) }, { status: 500 }); }
+    }
+    try { out.current_tagline = (await sql`select tagline from events where id=${out.current_event.id}`)[0]?.tagline ?? null; } catch {}
+  }
+
   // --- catalog inspection: RLS, policies, triggers, privileges, role ---
   try {
     out.diag.rls_enabled = (await sql`select relrowsecurity as e from pg_class where relname='ticket_types'`)[0]?.e ?? null;
