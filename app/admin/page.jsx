@@ -294,6 +294,7 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
     id: ticket?.id, name: ticket?.name || '', priceDollars: ticket ? (ticket.price_cents || 0) / 100 : 0,
     description: ticket?.description || '', admits: ticket?.admits || 1, max_qty: ticket?.max_qty ?? '',
     is_comp: !!ticket?.is_comp, active: ticket?.active !== false, sort: ticket?.sort || 0, allot: { ...(ticket?.allot || {}) },
+    category: ticket?.category || 'entry',
   });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -306,14 +307,14 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
     const { ok, data } = await post('/api/admin/tickets', {
       adminPin: pin, id: f.id, name: f.name.trim(), description: f.description,
       price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
-      admits: f.admits, max_qty: f.max_qty === '' ? null : f.max_qty, is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
+      admits: f.category === 'food' ? 0 : f.admits, category: f.category, max_qty: f.max_qty === '' ? null : f.max_qty, is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
     });
     setBusy(false);
     if (ok) {
       const saved = {
         id: data.id, name: f.name.trim(), description: f.description,
         price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
-        admits: f.admits, max_qty: f.max_qty === '' ? null : (parseInt(f.max_qty, 10) || null),
+        admits: f.category === 'food' ? 0 : f.admits, category: f.category, max_qty: f.max_qty === '' ? null : (parseInt(f.max_qty, 10) || null),
         is_comp: f.is_comp, active: f.active, sort: f.sort, allot: { ...f.allot }, sold: ticket?.sold || 0,
       };
       onSaved(editing ? 'Ticket updated' : 'Ticket created', { ticket: saved });
@@ -337,6 +338,13 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
       </>}>
       <div><label className="f">Ticket name</label>
         <input value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Adult, Family (up to 4)" autoFocus /></div>
+      <div><label className="f">Section</label>
+        <div className="segmented">
+          <button type="button" className={f.category !== 'food' ? 'on' : ''} onClick={() => set('category', 'entry')}>🎟 Event Entry</button>
+          <button type="button" className={f.category === 'food' ? 'on' : ''} onClick={() => set('category', 'food')}>🍽 Food Coupon</button>
+        </div>
+        <div className="hint" style={{ margin: '6px 0 0' }}>{f.category === 'food' ? 'A purchasable food coupon — does not admit guests. Set the coupon(s) it grants below.' : 'An admission ticket. Admits guests and may include food coupons.'}</div>
+      </div>
       <div className="row">
         <div className="grow"><label className="f">Price</label>
           <div className="pricewrap"><span>$</span>
@@ -346,10 +354,12 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
       </div>
       <div><label className="f">Description</label>
         <input value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="What's included" /></div>
-      <div className="allot-row">
-        <div><div style={{ fontWeight: 600 }}>Group size</div><div className="hint" style={{ margin: 0 }}>People one ticket admits</div></div>
-        <Stepper value={f.admits} min={1} onChange={(v) => set('admits', v)} />
-      </div>
+      {f.category !== 'food' && (
+        <div className="allot-row">
+          <div><div style={{ fontWeight: 600 }}>Group size</div><div className="hint" style={{ margin: 0 }}>People one ticket admits</div></div>
+          <Stepper value={f.admits} min={1} onChange={(v) => set('admits', v)} />
+        </div>
+      )}
       <label className="allot-row switch" style={{ cursor: 'pointer' }}>
         <div><div style={{ fontWeight: 600 }}>Comp ticket</div><div className="hint" style={{ margin: 0 }}>Volunteers / performers — no payment</div></div>
         <span><input type="checkbox" checked={f.is_comp} onChange={(e) => set('is_comp', e.target.checked)} /><span className="track"><span className="knob" /></span></span>

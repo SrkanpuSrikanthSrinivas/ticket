@@ -72,7 +72,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 ## 5. Data model
 
 - **events** — name, event_date, venue, tagline, **details** (shown on registration page), email_subject, email_body.
-- **ticket_types** — name, description, price_cents, **admits** (headcount per unit), max_qty (capacity), is_comp (free), active, sort.
+- **ticket_types** — name, description, price_cents, **admits** (headcount per unit), max_qty (capacity), is_comp (free), active, sort, **category** (`entry` | `food`).
 - **coupon_types** — name, **value_cents** (denomination, e.g. $2/$5/$8/$10), sort.
 - **ticket_coupon_allotments** — ticket_type → coupon_type, qty_per_guest.
 - **orders** — buyer_name, buyer_email, buyer_phone (mobile), buyer_country, buyer_zip, **code** (`MKANT‑…`), amount_cents, braintree_txn_id, status.
@@ -93,6 +93,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 - **BUY‑8** `[ ]` *(idea)* Discount / promo codes.
 - **BUY‑9** `[x]` **Cart ticket table** — the cart card shows a small table of selected types (type × qty × subtotal) before the total. *(R‑NEW‑1)*
 - **BUY‑10** `[x]` The **ticket table (type × qty)** appears consistently in cart, confirmation, email, gate scan card, and stall. *(R‑NEW‑4)*
+- **BUY‑11** `[x]` Purchase screen is split into two professional **sections** — **Event Entry** and **Food Coupons** — driven by each ticket type's `category`. Buyers can add from either. Grouping carries into the cart, confirmation, email, gate card, and stall. *(R‑NEW‑5)*
 
 ---
 
@@ -156,7 +157,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 
 - **ADM‑1** `[x]` Sign in with `ADMIN_PIN`.
 - **ADM‑2** `[x]` Edit **event**: name, date, venue, welcome line, **details** (registration‑page text).
-- **ADM‑3** `[x]` Manage **ticket types**: price, admits, capacity, comp, coupon allotments.
+- **ADM‑3** `[x]` Manage **ticket types**: **section** (Event Entry / Food Coupon), price, admits, capacity, comp, coupon allotments. Food‑coupon types admit 0 guests and grant the coupon(s) set in allotments.
 - **ADM‑4** `[x]` Manage **coupon denominations**.
 - **ADM‑5** `[x]` Edit **email template** (subject/body) + **Send test**.
 - **ADM‑6** `[x]` Saves persist reliably (direct endpoint) with optimistic UI.
@@ -232,6 +233,7 @@ Fresh: `db/schema.sql` then `db/seed.sql`. Incremental (idempotent):
 - [x] R‑NEW‑2 — Country removed from the form. *(done)*
 - [x] R‑NEW‑3 — scan shows tickets + coupons to issue (counts). *(done)*
 - [x] R‑NEW‑4 — ticket table kept everywhere. *(done)*
+- [x] R‑NEW‑5 — Event Entry vs Food Coupons as separate sections. *(done)*
 - [ ] …add your next requirement here…
 
 ---
@@ -241,5 +243,6 @@ Fresh: `db/schema.sql` then `db/seed.sql`. Incremental (idempotent):
 | Date | Change |
 |---|---|
 | 2026‑08‑20 | Order‑level QR + one‑scan group check‑in; multi‑ticket cart; event‑details template; 800+ search; professional email + scan card; fixed false "already checked in". |
+| 2026‑08‑20 | R‑NEW‑5 two purchase sections (Event Entry / Food Coupons) via ticket `category`, grouped everywhere; admin section selector. |
 | 2026‑08‑20 | R‑NEW‑1 cart ticket table; R‑NEW‑2 removed Country; R‑NEW‑3 scan shows tickets + coupons‑to‑issue; R‑NEW‑4 ticket table everywhere (cart/email/gate/stall). |
 | (earlier) | Initial build: buyer/gate/stall/admin, coupons, Braintree, Resend/SendGrid email, report, CSV. |

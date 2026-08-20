@@ -35,7 +35,7 @@ export async function POST(req) {
   let ev0 = null;
   for (const c of cart) {
     const t = (await sql`
-      select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, tt.active,
+      select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, tt.active, tt.category,
              e.name as event_name, e.event_date, e.venue, e.details as event_details, e.email_subject, e.email_body
       from ticket_types tt join events e on e.id = tt.event_id
       where tt.id=${c.ticketTypeId} and tt.active=true`)[0];
@@ -73,7 +73,7 @@ export async function POST(req) {
     const tId = randomUUID(); const code = humanCode();
     try {
       await sql`insert into tickets (id, order_id, event_id, ticket_type_id, code, qty) values (${tId}, ${orderId}, ${eventId}, ${t.id}, ${code}, ${c.qty})`;
-      tickets.push({ typeName: t.name, qty: c.qty });
+      tickets.push({ typeName: t.name, qty: c.qty, category: t.category || 'entry' });
     } catch (e) { console.error('ticket insert failed:', e); }
   }
 

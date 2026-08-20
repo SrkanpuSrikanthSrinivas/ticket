@@ -6,12 +6,12 @@ import { sql } from '../../../lib/db';
 // Public: the current event + its active ticket tiers with remaining capacity.
 // The embedded buyer flow renders from this.
 export async function GET() {
-  const ev = (await sql`select id, name, event_date, venue, tagline
+  const ev = (await sql`select id, name, event_date, venue, tagline, details
                         from events order by created_at desc limit 1`)[0];
   if (!ev) return Response.json({ error: 'no_event' }, { status: 404 });
 
   const tiers = await sql`
-    select tt.id, tt.name, tt.description, tt.price_cents, tt.admits, tt.is_comp, tt.max_qty,
+    select tt.id, tt.name, tt.description, tt.price_cents, tt.admits, tt.is_comp, tt.max_qty, tt.category,
            coalesce((select sum(qty) from tickets t
                      where t.ticket_type_id=tt.id and t.status <> 'void'),0)::int as sold
     from ticket_types tt
@@ -20,10 +20,10 @@ export async function GET() {
 
   const ticketTypes = tiers.map((t) => ({
     id: t.id, name: t.name, description: t.description,
-    price_cents: t.price_cents, is_comp: t.is_comp, admits: t.admits,
+    price_cents: t.price_cents, is_comp: t.is_comp, admits: t.admits, category: t.category || 'entry',
     remaining: t.max_qty == null ? null : Math.max(0, t.max_qty - t.sold),
     soldOut: t.max_qty != null && t.sold >= t.max_qty,
   }));
 
-  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, details: ev.details, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
 }

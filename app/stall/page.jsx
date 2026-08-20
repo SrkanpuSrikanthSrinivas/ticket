@@ -132,9 +132,11 @@ export default function Stall() {
               <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{t.buyer_name}</div><div className="hint">{t.code}</div></div>
               <span className="pill in">{left} left · {money(valueLeft)}</span>
             </div>
-            <div className="eyebrow stall-tickets" style={{ margin: '8px 0 4px' }}>Tickets</div>
-            <table className="cart-tbl"><tbody>
-              {(state.ticketRows || []).map((r, i) => (<tr key={i}><td>{r.name}</td><td className="q">×{r.qty}</td></tr>))}
+            <table className="cart-tbl stall-tickets"><tbody>
+              {(state.ticketRows || []).filter((r) => (r.category || 'entry') !== 'food').length > 0 && <tr className="grp"><td colSpan={2}>Event Entry</td></tr>}
+              {(state.ticketRows || []).filter((r) => (r.category || 'entry') !== 'food').map((r, i) => (<tr key={'e' + i}><td>{r.name}</td><td className="q">×{r.qty}</td></tr>))}
+              {(state.ticketRows || []).filter((r) => (r.category || 'entry') === 'food').length > 0 && <tr className="grp"><td colSpan={2}>Food Coupons</td></tr>}
+              {(state.ticketRows || []).filter((r) => (r.category || 'entry') === 'food').map((r, i) => (<tr key={'f' + i}><td>{r.name}</td><td className="q">×{r.qty}</td></tr>))}
             </tbody></table>
             <div className="eyebrow" style={{ margin: '12px 0 4px' }}>Food coupons</div>
             <div className="divider" />

@@ -31,9 +31,9 @@ export async function POST(req) {
 
   // Ticket breakdown (type × qty) for a table anywhere it's shown.
   const ticketRows = await sql`
-    select tt.name, coalesce(sum(t.qty),0)::int qty
+    select tt.name, tt.category, coalesce(sum(t.qty),0)::int qty
     from tickets t join ticket_types tt on tt.id=t.ticket_type_id
-    where t.order_id=${orderId} group by tt.id, tt.name, tt.sort order by tt.sort`;
+    where t.order_id=${orderId} group by tt.id, tt.name, tt.category, tt.sort order by tt.sort`;
 
   const checked_in = Number(info.ticket_count) > 0 && Number(info.checked_count) >= Number(info.ticket_count);
   return Response.json({ order: { ...info, checked_in }, coupons, couponPreview, ticketRows });

@@ -9,6 +9,38 @@ function loadScript(src) {
 }
 const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 
+function TierSection({ title, icon, tiers, cart, setQty, note }) {
+  if (!tiers || tiers.length === 0) return null;
+  const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div className="sechead"><span className="sec-ic">{icon}</span><span>{title}</span></div>
+      {note && <div className="hint" style={{ margin: '2px 0 8px' }}>{note}</div>}
+      <div className="stack">
+        {tiers.map((t) => (
+          <div key={t.id} className={`tier ${t.soldOut ? 'out' : ''}`} style={{ cursor: 'default' }}>
+            <div className="grow">
+              <div className="nm">{t.name}</div>
+              {t.description && <div className="ds">{t.description}</div>}
+              {t.admits > 1 && <div className="ds">Admits {t.admits} people</div>}
+              {t.remaining != null && t.remaining <= 25 && !t.soldOut && <div className="ds">Only {t.remaining} left</div>}
+              {t.soldOut && <div className="ds">Sold out</div>}
+              <div className="pr" style={{ marginLeft: 0, marginTop: 6 }}>{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
+            </div>
+            {!t.soldOut && (
+              <div className="stepper" style={{ alignSelf: 'center' }}>
+                <button type="button" onClick={() => setQty(t.id, (cart[t.id] || 0) - 1)}>−</button>
+                <input value={cart[t.id] || 0} onChange={(e) => setQty(t.id, parseInt(e.target.value, 10) || 0)} />
+                <button type="button" onClick={() => setQty(t.id, (cart[t.id] || 0) + 1)}>+</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Buy() {
   const [ev, setEv] = useState(null);
   const [cart, setCart] = useState({});           // { ticketTypeId: qty }
@@ -27,6 +59,8 @@ export default function Buy() {
   }, []);
 
   const tiers = ev?.ticketTypes || [];
+  const entryTiers = tiers.filter((t) => (t.category || 'entry') !== 'food');
+  const foodTiers = tiers.filter((t) => (t.category || 'entry') === 'food');
   const setQty = (id, q) => setCart((c) => ({ ...c, [id]: Math.max(0, q) }));
   const lineItems = tiers.filter((t) => (cart[t.id] || 0) > 0).map((t) => ({ ...t, qty: cart[t.id] }));
   const itemCount = lineItems.reduce((s, t) => s + t.qty, 0);
@@ -92,10 +126,13 @@ export default function Buy() {
           <div className="brandline">🎟 {ev.name}</div>
           <div className="who">{order.buyerName}</div>
           <div style={{ marginTop: 10 }}>
-            {order.items.map((it) => (
-              <div key={it.typeName} className="row" style={{ justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
-                <span>{it.typeName}</span><span style={{ fontWeight: 700 }}>× {it.qty}</span>
-              </div>
+            {order.items.filter((it) => (it.category || 'entry') !== 'food').length > 0 && <div className="passgrp">Event Entry</div>}
+            {order.items.filter((it) => (it.category || 'entry') !== 'food').map((it) => (
+              <div key={it.typeName} className="row" style={{ justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}><span>{it.typeName}</span><span style={{ fontWeight: 700 }}>× {it.qty}</span></div>
+            ))}
+            {order.items.filter((it) => (it.category || 'entry') === 'food').length > 0 && <div className="passgrp">Food Coupons</div>}
+            {order.items.filter((it) => (it.category || 'entry') === 'food').map((it) => (
+              <div key={it.typeName} className="row" style={{ justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}><span>{it.typeName}</span><span style={{ fontWeight: 700 }}>× {it.qty}</span></div>
             ))}
           </div>
           <p className="hint" style={{ marginTop: 12 }}>{ev.date || 'Date TBA'} · {ev.venue || ''}</p>
@@ -145,34 +182,20 @@ export default function Buy() {
         {ev.details && <p style={{ margin: '10px 0 0', color: 'var(--muted)', whiteSpace: 'pre-line', lineHeight: 1.55 }}>{ev.details}</p>}
       </div>
 
-      <div className="eyebrow">Select tickets</div>
-      <div className="stack">
-        {tiers.map((t) => (
-          <div key={t.id} className={`tier ${t.soldOut ? 'out' : ''}`} style={{ cursor: 'default' }}>
-            <div className="grow">
-              <div className="nm">{t.name}</div>
-              {t.description && <div className="ds">{t.description}</div>}
-              {t.admits > 1 && <div className="ds">Admits {t.admits} people</div>}
-              {t.remaining != null && t.remaining <= 25 && !t.soldOut && <div className="ds">Only {t.remaining} left</div>}
-              {t.soldOut && <div className="ds">Sold out</div>}
-              <div className="pr" style={{ marginLeft: 0, marginTop: 6 }}>{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
-            </div>
-            {!t.soldOut && (
-              <div className="stepper" style={{ alignSelf: 'center' }}>
-                <button type="button" onClick={() => setQty(t.id, (cart[t.id] || 0) - 1)}>−</button>
-                <input value={cart[t.id] || 0} onChange={(e) => setQty(t.id, parseInt(e.target.value, 10) || 0)} />
-                <button type="button" onClick={() => setQty(t.id, (cart[t.id] || 0) + 1)}>+</button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <TierSection title="Event Entry" icon="🎟" tiers={entryTiers} cart={cart} setQty={setQty} />
+      <TierSection title="Food Coupons" icon="🍽" tiers={foodTiers} cart={cart} setQty={setQty}
+        note="Prepaid food coupons — redeem at the food stalls." />
 
       {itemCount > 0 && (
         <div className="card stack" style={{ marginTop: 16 }}>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>Your tickets</div>
+          <div className="eyebrow" style={{ marginBottom: 6 }}>Your order</div>
           <table className="cart-tbl"><tbody>
-            {lineItems.map((t) => (
+            {lineItems.filter((t) => (t.category || 'entry') !== 'food').length > 0 && <tr className="grp"><td colSpan={3}>Event Entry</td></tr>}
+            {lineItems.filter((t) => (t.category || 'entry') !== 'food').map((t) => (
+              <tr key={t.id}><td>{t.name}</td><td className="q">×{t.qty}</td><td className="p">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents * t.qty)}</td></tr>
+            ))}
+            {lineItems.filter((t) => (t.category || 'entry') === 'food').length > 0 && <tr className="grp"><td colSpan={3}>Food Coupons</td></tr>}
+            {lineItems.filter((t) => (t.category || 'entry') === 'food').map((t) => (
               <tr key={t.id}><td>{t.name}</td><td className="q">×{t.qty}</td><td className="p">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents * t.qty)}</td></tr>
             ))}
           </tbody></table>

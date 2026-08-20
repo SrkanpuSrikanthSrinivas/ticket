@@ -177,10 +177,17 @@ export default function Gate() {
               <div className="gbadge"><div className="gn">{card.guests}</div><div className="gl">guest{card.guests === 1 ? '' : 's'}</div></div>
             </div>
             <div className="gbody">
-              <div className="eyebrow" style={{ marginBottom: 4 }}>Tickets</div>
-              <div className="gitems">{(card.ticketRows?.length ? card.ticketRows : splitItems(card.items)).map((it, i) => (
-                <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>
-              ))}</div>
+              {(() => {
+                const rows = card.ticketRows?.length ? card.ticketRows : splitItems(card.items).map((x) => ({ ...x, category: 'entry' }));
+                const entry = rows.filter((r) => (r.category || 'entry') !== 'food');
+                const food = rows.filter((r) => (r.category || 'entry') === 'food');
+                return (<>
+                  {entry.length > 0 && <><div className="eyebrow" style={{ marginBottom: 4 }}>Event Entry</div>
+                    <div className="gitems">{entry.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>)}</div></>}
+                  {food.length > 0 && <><div className="eyebrow" style={{ margin: '12px 0 4px' }}>Food Coupons purchased</div>
+                    <div className="gitems">{food.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>)}</div></>}
+                </>);
+              })()}
               {card.couponPreview?.length > 0 && (<>
                 <div className="eyebrow" style={{ margin: '14px 0 4px' }}>Coupons to issue</div>
                 <div className="gitems">{card.couponPreview.map((c, i) => (
