@@ -25,7 +25,7 @@ export async function GET(req) {
     from coupons c join coupon_types ct on ct.id=c.coupon_type_id join tickets t on t.id=c.ticket_id
     where t.event_id=${ev.id}`)[0];
 
-  const tiers = await sql`select tt.name,
+  const tiers = await sql`select tt.name, tt.category,
       coalesce(sum(t.qty) filter (where t.status<>'void'),0)::int sold,
       coalesce(sum(t.qty*tt.price_cents) filter (where t.status<>'void'),0)::int revenue
     from ticket_types tt left join tickets t on t.ticket_type_id=tt.id

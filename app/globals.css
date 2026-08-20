@@ -180,3 +180,4 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .sechead .sec-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#efe7f5;font-size:15px}
 .cart-tbl tr.grp td{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;padding-top:12px;border-bottom:0}
 .passgrp{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#b9a9c9;font-weight:800;margin:8px 0 2px}
+.rtable td.rgrp{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;padding-top:14px;border-bottom:0}

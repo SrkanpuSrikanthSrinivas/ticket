@@ -68,6 +68,22 @@ export default function Admin() {
   const ev = cfg?.event;
   const coupons = cfg?.couponTypes || [];
   const tickets = [...(cfg?.ticketTypes || [])].sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name));
+  const entryTickets = tickets.filter((t) => (t.category || 'entry') !== 'food');
+  const foodTickets = tickets.filter((t) => (t.category || 'entry') === 'food');
+  const TicketRow = (t) => (
+    <button key={t.id} className="trow" onClick={() => setModal({ kind: 'ticket', ticket: t })}>
+      <div className="grow">
+        <div className="tn">{t.name}
+          {t.is_comp && <span className="badge comp">Comp</span>}
+          {t.active === false && <span className="badge off">Off</span>}
+        </div>
+        <div className="tm">{t.admits > 1 ? `Group of ${t.admits} · ` : ''}{availText(t)}</div>
+        <div className="tm">{couponSummary(t)}</div>
+      </div>
+      <div className="tp">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
+      <svg className="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg>
+    </button>
+  );
   const foodValue = (t) => coupons.reduce((s, c) => s + (t.allot?.[c.id] || 0) * (c.value_cents || 0), 0);
   const couponSummary = (t) => {
     const parts = coupons.filter((c) => (t.allot?.[c.id] || 0) > 0).map((c) => `${c.name}×${t.allot[c.id]}`);
@@ -109,21 +125,13 @@ export default function Admin() {
 
         <div className="section-h"><div className="eyebrow">Ticket types</div>
           <button className="btn btn-primary btn-sm" onClick={() => setModal({ kind: 'ticket', ticket: null })}>＋ New ticket</button></div>
-        {tickets.length === 0 && <div className="card hint">No tickets yet. Create your first ticket type — individual, group, or comp.</div>}
-        {tickets.map((t) => (
-          <button key={t.id} className="trow" onClick={() => setModal({ kind: 'ticket', ticket: t })}>
-            <div className="grow">
-              <div className="tn">{t.name}
-                {t.is_comp && <span className="badge comp">Comp</span>}
-                {t.active === false && <span className="badge off">Off</span>}
-              </div>
-              <div className="tm">{t.admits > 1 ? `Group of ${t.admits} · ` : ''}{availText(t)}</div>
-              <div className="tm">{couponSummary(t)}</div>
-            </div>
-            <div className="tp">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
-            <svg className="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg>
-          </button>
-        ))}
+        {tickets.length === 0 && <div className="card hint">No tickets yet. Create your first ticket type — individual, group, comp, or a food coupon.</div>}
+
+        {entryTickets.length > 0 && <div className="sechead" style={{ margin: '4px 0 8px' }}><span className="sec-ic">🎟</span><span>Event Entry</span></div>}
+        {entryTickets.map(TicketRow)}
+
+        {foodTickets.length > 0 && <div className="sechead" style={{ margin: '18px 0 8px' }}><span className="sec-ic">🍽</span><span>Food Coupons</span></div>}
+        {foodTickets.map(TicketRow)}
       </div>
 
       {modal?.kind === 'event' && <EventModal pin={pin} event={ev} onClose={() => setModal(null)}

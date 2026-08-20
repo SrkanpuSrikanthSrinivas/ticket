@@ -93,7 +93,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 - **BUY‑8** `[ ]` *(idea)* Discount / promo codes.
 - **BUY‑9** `[x]` **Cart ticket table** — the cart card shows a small table of selected types (type × qty × subtotal) before the total. *(R‑NEW‑1)*
 - **BUY‑10** `[x]` The **ticket table (type × qty)** appears consistently in cart, confirmation, email, gate scan card, and stall. *(R‑NEW‑4)*
-- **BUY‑11** `[x]` Purchase screen is split into two professional **sections** — **Event Entry** and **Food Coupons** — driven by each ticket type's `category`. Buyers can add from either. Grouping carries into the cart, confirmation, email, gate card, and stall. *(R‑NEW‑5)*
+- **BUY‑11** `[x]` The **Event Entry** / **Food Coupons** split is applied **everywhere**: purchase screen, cart, confirmation, email, gate check‑in card, stall, **admin ticket list**, and **report**. Driven by each ticket type's `category`. *(R‑NEW‑5, R‑NEW‑6)*
 
 ---
 
@@ -157,7 +157,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 
 - **ADM‑1** `[x]` Sign in with `ADMIN_PIN`.
 - **ADM‑2** `[x]` Edit **event**: name, date, venue, welcome line, **details** (registration‑page text).
-- **ADM‑3** `[x]` Manage **ticket types**: **section** (Event Entry / Food Coupon), price, admits, capacity, comp, coupon allotments. Food‑coupon types admit 0 guests and grant the coupon(s) set in allotments.
+- **ADM‑3** `[x]` Manage **ticket types**, listed under **Event Entry** and **Food Coupons** groups: **section** (Event Entry / Food Coupon), price, admits, capacity, comp, coupon allotments. Food‑coupon types admit 0 guests and grant the coupon(s) set in allotments.
 - **ADM‑4** `[x]` Manage **coupon denominations**.
 - **ADM‑5** `[x]` Edit **email template** (subject/body) + **Send test**.
 - **ADM‑6** `[x]` Saves persist reliably (direct endpoint) with optimistic UI.
@@ -167,7 +167,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 ## 13. Report & export (`/report`)
 
 - **RPT‑1** `[x]` Live stats (15s refresh): **orders**, total guests, **checked‑in guests**, revenue (paid), coupon value **redeemed vs issued**.
-- **RPT‑2** `[x]` **Sales by ticket type** (sold + revenue).
+- **RPT‑2** `[x]` **Sales by ticket type** (sold + revenue), grouped under **Event Entry** and **Food Coupons**.
 - **RPT‑3** `[x]` **Recent check‑ins** (grouped per order/group).
 - **RPT‑4** `[x]` **CSV export** — one row per order: code, name, email, mobile, country, items, guests, status, check‑in time. Works with admin PIN.
 - **RPT‑5** `[ ]` *(idea)* Per‑stall / per‑coupon‑type redemption breakdown.
@@ -234,6 +234,7 @@ Fresh: `db/schema.sql` then `db/seed.sql`. Incremental (idempotent):
 - [x] R‑NEW‑3 — scan shows tickets + coupons to issue (counts). *(done)*
 - [x] R‑NEW‑4 — ticket table kept everywhere. *(done)*
 - [x] R‑NEW‑5 — Event Entry vs Food Coupons as separate sections. *(done)*
+- [x] R‑NEW‑6 — same split at admin list + report (all places). *(done)*
 - [ ] …add your next requirement here…
 
 ---
@@ -243,6 +244,7 @@ Fresh: `db/schema.sql` then `db/seed.sql`. Incremental (idempotent):
 | Date | Change |
 |---|---|
 | 2026‑08‑20 | Order‑level QR + one‑scan group check‑in; multi‑ticket cart; event‑details template; 800+ search; professional email + scan card; fixed false "already checked in". |
+| 2026‑08‑20 | R‑NEW‑6 extended the Entry/Food split to the admin ticket list and the report. |
 | 2026‑08‑20 | R‑NEW‑5 two purchase sections (Event Entry / Food Coupons) via ticket `category`, grouped everywhere; admin section selector. |
 | 2026‑08‑20 | R‑NEW‑1 cart ticket table; R‑NEW‑2 removed Country; R‑NEW‑3 scan shows tickets + coupons‑to‑issue; R‑NEW‑4 ticket table everywhere (cart/email/gate/stall). |
 | (earlier) | Initial build: buyer/gate/stall/admin, coupons, Braintree, Resend/SendGrid email, report, CSV. |

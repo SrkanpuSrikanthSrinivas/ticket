@@ -55,9 +55,14 @@ export default function Report() {
           <h3 style={{ fontSize: 16 }}>Sales by ticket type</h3>
           <div className="divider" />
           <table className="rtable"><thead><tr><th>Ticket</th><th>Sold</th><th>Revenue</th></tr></thead>
-            <tbody>{(d.tiers || []).map((t, i) => (
-              <tr key={i}><td>{t.name}</td><td>{t.sold}</td><td>{money(t.revenue)}</td></tr>
-            ))}</tbody></table>
+            <tbody>
+              {(d.tiers || []).filter((t) => (t.category || 'entry') !== 'food').length > 0 && <tr><td colSpan={3} className="rgrp">Event Entry</td></tr>}
+              {(d.tiers || []).filter((t) => (t.category || 'entry') !== 'food').map((t, i) => (
+                <tr key={'e' + i}><td>{t.name}</td><td>{t.sold}</td><td>{money(t.revenue)}</td></tr>))}
+              {(d.tiers || []).filter((t) => (t.category || 'entry') === 'food').length > 0 && <tr><td colSpan={3} className="rgrp">Food Coupons</td></tr>}
+              {(d.tiers || []).filter((t) => (t.category || 'entry') === 'food').map((t, i) => (
+                <tr key={'f' + i}><td>{t.name}</td><td>{t.sold}</td><td>{money(t.revenue)}</td></tr>))}
+            </tbody></table>
         </div>
 
         <div className="card" style={{ marginTop: 16 }}>
