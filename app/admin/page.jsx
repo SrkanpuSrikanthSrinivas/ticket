@@ -150,14 +150,14 @@ function Sheet({ title, onClose, children, footer }) {
 }
 
 function EventModal({ pin, event, onClose, onSaved }) {
-  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', venue: event?.venue || '', tagline: event?.tagline || '' });
+  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', venue: event?.venue || '', tagline: event?.tagline || '', details: event?.details || '' });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const save = async () => {
     if (!f.name.trim()) return setErr('Event name is required.');
     setBusy(true);
     const { ok, data } = await post('/api/admin/event', { adminPin: pin, ...f });
     setBusy(false);
-    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, venue: f.venue, tagline: f.tagline });
+    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, venue: f.venue, tagline: f.tagline, details: f.details });
     else setErr(data.message || 'Save failed.');
   };
   return (
@@ -169,7 +169,11 @@ function EventModal({ pin, event, onClose, onSaved }) {
         <div className="grow"><label className="f">Date</label><input value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} placeholder="Sat, Jun 20 · 5 PM" /></div>
         <div className="grow"><label className="f">Venue</label><input value={f.venue} onChange={(e) => setF({ ...f, venue: e.target.value })} placeholder="Community Hall" /></div>
       </div>
-      <div><label className="f">Welcome line (on the ticket)</label><input value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} /></div>
+      <div><label className="f">Welcome line (short)</label><input value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} /></div>
+      <div><label className="f">Event details (shown on the registration page)</label>
+        <textarea rows={6} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })}
+          placeholder="Schedule, address, parking, what to bring…"
+          style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} /></div>
       {err && <div className="err">{err}</div>}
     </Sheet>
   );

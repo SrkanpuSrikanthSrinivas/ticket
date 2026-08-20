@@ -23,7 +23,7 @@ export async function POST(req) {
       from tickets t join ticket_types tt on tt.id=t.ticket_type_id
       join orders o on o.id=t.order_id
       where t.code ilike ${like} or o.buyer_name ilike ${like} or o.buyer_email ilike ${like}
-      order by t.created_at desc limit 25`;
+      order by o.buyer_name limit 51`;
   }
-  return Response.json({ matches: rows });
+  const truncated = rows.length > 50; return Response.json({ matches: rows.slice(0, 50), truncated });
 }

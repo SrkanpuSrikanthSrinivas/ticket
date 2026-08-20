@@ -19,7 +19,7 @@ export async function POST(req) {
   const ev = (await sql`select name, event_date, venue, email_subject, email_body from events order by created_at desc limit 1`)[0] || {};
   const event = { name: ev.name || 'Event', event_date: ev.event_date, venue: ev.venue, email_subject: subject || ev.email_subject, email_body: body || ev.email_body };
 
-  const r = await sendTicketEmail({ to, buyerName: 'Test Guest', event, ticketTypeName: 'Adult', code: 'TIX-TEST', token: 'test.token', qty: 1, baseUrl: new URL(req.url).origin });
+  const r = await sendTicketEmail({ to, buyerName: 'Test Guest', event, tickets: [{ typeName: 'Adult', code: 'TIX-TEST', token: 'test.token', qty: 1 }], baseUrl: new URL(req.url).origin });
   out.from = r.from; out.status = r.status; out.provider_body = r.body;
   const ok = r.provider === 'resend' ? r.ok : r.status === 202;
   let hint = r.body || 'see logs';

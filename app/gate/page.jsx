@@ -17,6 +17,7 @@ export default function Gate() {
   const [mode, setMode] = useState('type');
   const [q, setQ] = useState('');
   const [matches, setMatches] = useState(null);
+  const [truncated, setTruncated] = useState(false);
   const [card, setCard] = useState(null);   // { kind:'ready'|'ok'|'warn', ... }
   const [busy, setBusy] = useState(false);
   const scannerRef = useRef(null);
@@ -43,6 +44,7 @@ export default function Gate() {
     if (res.status === 401) { setAuthed(false); setBusy(false); return; }
     const data = await res.json();
     setBusy(false);
+    setTruncated(!!data.truncated);
     if (!data.matches?.length) { setCard({ kind: 'none', q: val }); return; }
     if (data.matches.length === 1) return showReady(data.matches[0]);
     setMatches(data.matches);
@@ -62,7 +64,15 @@ export default function Gate() {
     else setCard({ kind: 'warn', ...(data.ticket || {}), buyer_name: data.ticket?.buyer_name });
   }
 
-  function reset() { setQ(''); setMatches(null); setCard(null); }
+  useEffect(() => {
+    if (mode !== 'type') return;
+    const val = q.trim();
+    if (val.length < 2) { setMatches(null); if (card?.kind === 'none') setCard(null); return; }
+    const id = setTimeout(() => lookup(val), 250);
+    return () => clearTimeout(id);
+  }, [q, mode]);
+
+  function reset() { setQ(''); setMatches(null); setCard(null); setTruncated(false); }
 
   // --- PIN sign-in ---
   if (!authed) {
@@ -113,13 +123,21 @@ export default function Gate() {
 
         {matches && (
           <div className="card" style={{ marginTop: 16 }}>
-            <h3 style={{ fontSize: 16 }}>{matches.length} matches</h3>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <h3 style={{ fontSize: 16 }}>{truncated ? '50+ matches' : `${matches.length} match${matches.length === 1 ? '' : 'es'}`}</h3>
+              {truncated && <span className="hint">Keep typing to narrow</span>}
+            </div>
             <div className="divider" />
             {matches.map((m) => (
               <div key={m.id} className="li" style={{ cursor: 'pointer' }} onClick={() => showReady(m)}>
                 <div className="avatar">{initials(m.buyer_name)}</div>
-                <div className="grow"><div style={{ fontWeight: 600 }}>{m.buyer_name}</div><div className="hint">{m.type_name} · {m.code}</div></div>
-                <span className={`pill ${m.status === 'checked_in' ? 'in' : 'reg'}`}>{m.status === 'checked_in' ? 'In' : 'Valid'}</span>
+                <div className="grow">
+                  <div style={{ fontWeight: 600 }}>{m.buyer_name}</div>
+                  <div className="hint">{m.type_name}{m.qty > 1 ? ` ×${m.qty}` : ''} · <span className="mono">{m.code}</span></div>
+                </div>
+                <span className={`pill ${m.status === 'checked_in' ? 'in' : 'reg'}`}>
+                  {m.status === 'checked_in' ? `In${m.checked_in_at ? ' · ' + new Date(m.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}` : 'Valid'}
+                </span>
               </div>
             ))}
           </div>
