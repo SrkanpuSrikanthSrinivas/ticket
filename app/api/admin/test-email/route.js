@@ -22,7 +22,13 @@ export async function POST(req) {
   const r = await sendTicketEmail({ to, buyerName: 'Test Guest', event, ticketTypeName: 'Adult', code: 'TIX-TEST', token: 'test.token', qty: 1, baseUrl: new URL(req.url).origin });
   out.from = r.from; out.status = r.status; out.provider_body = r.body;
   const ok = r.provider === 'resend' ? r.ok : r.status === 202;
-  out.result = ok ? `SUCCESS via ${r.provider} — sent to ${to}. Check inbox/spam. (Resend free tier only delivers to your own account email until you verify a domain.)`
-    : `FAIL via ${r.provider} (status ${r.status}) — ${r.body || 'see logs'}`;
+  let hint = r.body || 'see logs';
+  if (r.provider === 'resend' && !ok) {
+    if (/domain is not verified/i.test(r.body || '')) hint = 'The from-address domain is not verified in Resend. For testing, unset TICKET_FROM_EMAIL so it uses onboarding@resend.dev; for real buyers, verify mallige.org at resend.com/domains and set TICKET_FROM_EMAIL to an address on it.';
+    else if (/your own email|testing emails|can only send/i.test(r.body || '')) hint = 'onboarding@resend.dev only delivers to the email you registered with Resend. Send the test to THAT address, or verify a domain to email anyone.';
+  }
+  out.effective_from = r.from;
+  out.result = ok ? `SUCCESS via ${r.provider} — sent to ${to} from ${r.from}. Check inbox/spam.`
+    : `FAIL via ${r.provider} (status ${r.status}) — ${hint}`;
   return Response.json(out, { headers: { 'Cache-Control': 'no-store' } });
 }
