@@ -10,8 +10,7 @@ export async function GET(req) {
   if (!ev) return Response.json({ error: 'no_event' }, { status: 404 });
 
   const g = (await sql`select
-      count(*)::int registrations,
-      count(*) filter (where t.status='checked_in')::int checked_in_tickets,
+      (select count(*) from orders where event_id=${ev.id})::int registrations,
       coalesce(sum(t.qty*tt.admits),0)::int guests,
       coalesce(sum(case when t.status='checked_in' then t.qty*tt.admits else 0 end),0)::int checked_in_guests
     from tickets t join ticket_types tt on tt.id=t.ticket_type_id where t.event_id=${ev.id}`)[0];
@@ -32,9 +31,12 @@ export async function GET(req) {
     from ticket_types tt left join tickets t on t.ticket_type_id=tt.id
     where tt.event_id=${ev.id} group by tt.id, tt.name, tt.sort order by tt.sort, tt.name`;
 
-  const recent = await sql`select o.buyer_name, tt.name as type, t.checked_in_at
+  const recent = await sql`select o.buyer_name,
+      string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as type,
+      max(t.checked_in_at) as checked_in_at
     from tickets t join ticket_types tt on tt.id=t.ticket_type_id join orders o on o.id=t.order_id
-    where t.event_id=${ev.id} and t.status='checked_in' order by t.checked_in_at desc limit 10`;
+    where t.event_id=${ev.id} and t.status='checked_in'
+    group by o.id, o.buyer_name order by max(t.checked_in_at) desc limit 10`;
 
   return Response.json({ event: ev, ...g, revenue_cents: rev.cents, coupons: cp, tiers, recent }, { headers: { 'Cache-Control': 'no-store' } });
 }

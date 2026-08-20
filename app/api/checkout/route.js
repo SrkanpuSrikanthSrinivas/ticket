@@ -58,9 +58,10 @@ export async function POST(req) {
   }
 
   const orderId = randomUUID();
+  const orderCode = humanCode();
   try {
-    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, amount_cents, braintree_txn_id, status)
-              values (${orderId}, ${eventId}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${amountCents}, ${txnId}, 'paid')`;
+    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, code, amount_cents, braintree_txn_id, status)
+              values (${orderId}, ${eventId}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${orderCode}, ${amountCents}, ${txnId}, 'paid')`;
   } catch (e) {
     console.error('order insert failed:', e);
     return Response.json({ error: 'server_error', message: 'Payment captured but order save failed' + (txnId ? ` (txn ${txnId})` : '') }, { status: 500 });
@@ -72,21 +73,22 @@ export async function POST(req) {
     const tId = randomUUID(); const code = humanCode();
     try {
       await sql`insert into tickets (id, order_id, event_id, ticket_type_id, code, qty) values (${tId}, ${orderId}, ${eventId}, ${t.id}, ${code}, ${c.qty})`;
-      tickets.push({ ticketId: tId, code, token: signTicket(tId), typeName: t.name, qty: c.qty });
+      tickets.push({ typeName: t.name, qty: c.qty });
     } catch (e) { console.error('ticket insert failed:', e); }
   }
 
+  const orderToken = signTicket(orderId);
   const baseUrl = new URL(req.url).origin;
   let emailRes = { ok: false };
   try {
     emailRes = await sendTicketEmail({
       to: email, buyerName: name,
       event: { name: ev0.event_name, event_date: ev0.event_date, venue: ev0.venue, email_subject: ev0.email_subject, email_body: ev0.email_body },
-      tickets, baseUrl,
+      token: orderToken, code: orderCode, items: tickets, baseUrl,
     });
   } catch (e) { emailRes = { ok: false, error: String(e?.message || e) }; }
-  if (!emailRes.ok) console.error('ticket email not sent:', emailRes.status, emailRes.body || emailRes.error);
+  if (!emailRes.ok) console.error('order email not sent:', emailRes.status, emailRes.body || emailRes.error);
 
-  return Response.json({ ok: true, orderId, tickets,
+  return Response.json({ ok: true, orderId, code: orderCode, token: orderToken, items: tickets,
     emailed: !!emailRes.ok, email_error: emailRes.ok ? null : (emailRes.body || emailRes.error || emailRes.reason || `status ${emailRes.status || '?'}`) });
 }

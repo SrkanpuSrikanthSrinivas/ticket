@@ -56,12 +56,12 @@ export default function Gate() {
     else setCard({ kind: 'ready', ...m });
   }
 
-  async function doCheckin(ticketId) {
+  async function doCheckin(orderId) {
     setBusy(true);
-    const res = await fetch('/api/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticketId, staffPin: pin }) });
+    const res = await fetch('/api/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, staffPin: pin }) });
     const data = await res.json(); setBusy(false);
-    if (data.ok) setCard({ kind: 'ok', ...data.ticket });
-    else setCard({ kind: 'warn', ...(data.ticket || {}), buyer_name: data.ticket?.buyer_name });
+    if (data.ok) setCard({ kind: 'ok', ...data.order, coupons: data.coupons });
+    else setCard({ kind: 'warn', ...(data.order || {}), coupons: data.coupons });
   }
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function Gate() {
                 <div className="avatar">{initials(m.buyer_name)}</div>
                 <div className="grow">
                   <div style={{ fontWeight: 600 }}>{m.buyer_name}</div>
-                  <div className="hint">{m.type_name}{m.qty > 1 ? ` ×${m.qty}` : ''} · <span className="mono">{m.code}</span></div>
+                  <div className="hint">{m.items} · {m.guests} guest{m.guests === 1 ? '' : 's'}</div>
                 </div>
                 <span className={`pill ${m.status === 'checked_in' ? 'in' : 'reg'}`}>
                   {m.status === 'checked_in' ? `In${m.checked_in_at ? ' · ' + new Date(m.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}` : 'Valid'}
@@ -156,32 +156,33 @@ export default function Gate() {
             <div className="big">Ready at the gate</div>
             <div className="li" style={{ border: 0, padding: '12px 0 4px' }}>
               <div className="avatar">{initials(card.buyer_name)}</div>
-              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{card.buyer_name}</div><div className="hint">{card.type_name} · {card.code}</div></div>
+              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{card.buyer_name}</div>
+                <div className="hint">{card.items} · {card.guests} guest{card.guests === 1 ? '' : 's'} · {card.code}</div></div>
             </div>
             <button className="btn btn-go btn-block" style={{ marginTop: 8 }} disabled={busy} onClick={() => doCheckin(card.id)}>
-              {busy ? 'Checking in…' : 'Check in & issue coupons'}
+              {busy ? 'Checking in…' : `Check in ${card.guests} guest${card.guests === 1 ? '' : 's'} & issue coupons`}
             </button>
           </div>
         )}
 
         {card?.kind === 'ok' && (
           <div className="result ok" style={{ marginTop: 16 }}>
-            <div className="big"><span className="check">✓</span> {card.buyer_name} is in</div>
-            <p className="hint" style={{ marginTop: 6 }}>{card.type_name}</p>
+            <div className="big"><span className="check">✓</span> {card.buyer_name} — {card.guests} in</div>
+            <p className="hint" style={{ marginTop: 6 }}>{card.items}</p>
             <div className="eyebrow" style={{ marginTop: 14 }}>Coupons issued — hand these over</div>
             <div className="chips">
               {(card.coupons || []).filter((c) => c.id).map((c) => <span key={c.id} className="chip">🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span>)}
-              {(!card.coupons || card.coupons.filter((c) => c.id).length === 0) && <span className="hint">No coupons on this ticket.</span>}
+              {(!card.coupons || card.coupons.filter((c) => c.id).length === 0) && <span className="hint">No coupons for this order.</span>}
             </div>
-            <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }} onClick={reset}>Next guest</button>
+            <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }} onClick={reset}>Next group</button>
           </div>
         )}
 
         {card?.kind === 'warn' && (
           <div className="result warn" style={{ marginTop: 16 }}>
             <div className="big">⚠️ Already checked in</div>
-            <p className="hint" style={{ marginTop: 6 }}>{card.buyer_name} — {card.type_name}{card.checked_in_at ? ` · ${new Date(card.checked_in_at).toLocaleString()}` : ''}.</p>
-            <button className="btn btn-ghost btn-block" style={{ marginTop: 12 }} onClick={reset}>Next guest</button>
+            <p className="hint" style={{ marginTop: 6 }}>{card.buyer_name} — {card.items}{card.checked_in_at ? ` · ${new Date(card.checked_in_at).toLocaleString()}` : ''}.</p>
+            <button className="btn btn-ghost btn-block" style={{ marginTop: 12 }} onClick={reset}>Next group</button>
           </div>
         )}
       </div>

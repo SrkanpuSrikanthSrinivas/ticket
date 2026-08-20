@@ -1,56 +1,43 @@
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { sql } from '../../../lib/db';
 import { verifyTicket } from '../../../lib/token';
 
-// Atomic check-in. A single CTE flips the ticket to checked_in ONLY if it is
-// currently 'valid', and in the same statement issues the coupons. Two gate
-// stations scanning the same ticket at once => exactly one wins, no double coupons.
 export async function POST(req) {
-  const { token, ticketId, staffPin, staff = 'gate' } = await req.json().catch(() => ({}));
+  const { token, orderId, staffPin, staff = 'gate' } = await req.json().catch(() => ({}));
   if (staffPin !== process.env.STAFF_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
-
-  const id = ticketId || verifyTicket(token);
+  const id = orderId || verifyTicket(token);
   if (!id) return Response.json({ error: 'invalid_ticket' }, { status: 400 });
 
-  const rows = await sql`
+  // Atomically check in all still-valid tickets in the order and issue their coupons.
+  const res = await sql`
     with upd as (
       update tickets set status='checked_in', checked_in_at=now(), checked_in_by=${staff}
-      where id=${id} and status='valid'
+      where order_id=${id} and status='valid'
       returning id, ticket_type_id, qty
     ),
     ins as (
       insert into coupons (ticket_id, coupon_type_id)
-      select upd.id, a.coupon_type_id
-      from upd
+      select upd.id, a.coupon_type_id from upd
       join ticket_coupon_allotments a on a.ticket_type_id = upd.ticket_type_id
       cross join generate_series(1, a.qty_per_guest * upd.qty)
       returning 1
     )
-    select (select count(*) from upd)::int as did, (select count(*) from ins)::int as coupons`;
+    select (select count(*) from upd)::int did, (select count(*) from ins)::int coupons`;
+  const { did } = res[0];
 
-  const { did, coupons } = rows[0];
+  const info = (await sql`select o.buyer_name, o.code,
+      coalesce(sum(t.qty*tt.admits),0)::int guests,
+      string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as items,
+      min(t.checked_in_at) as checked_in_at
+    from orders o join tickets t on t.order_id=o.id join ticket_types tt on tt.id=t.ticket_type_id
+    where o.id=${id} group by o.id, o.buyer_name, o.code`)[0];
 
-  if (did === 0) {
-    // Already checked in (or void). Return current state so staff can see it.
-    const cur = await sql`
-      select t.status, t.checked_in_at, tt.name as type_name, o.buyer_name,
-             (select count(*) from coupons c where c.ticket_id=t.id) as total,
-             (select count(*) from coupons c where c.ticket_id=t.id and c.redeemed) as used
-      from tickets t join ticket_types tt on tt.id=t.ticket_type_id
-      join orders o on o.id=t.order_id where t.id=${id}`;
-    return Response.json({ ok: false, reason: 'already_checked_in', ticket: cur[0] || null });
-  }
+  const coupons = await sql`select c.id, ct.name, ct.value_cents, c.redeemed
+    from coupons c join tickets t on t.id=c.ticket_id join coupon_types ct on ct.id=c.coupon_type_id
+    where t.order_id=${id} order by ct.sort`;
 
-  const info = await sql`
-    select t.checked_in_at, tt.name as type_name, o.buyer_name, t.qty,
-      json_agg(json_build_object('id', c.id, 'name', ct.name, 'value_cents', ct.value_cents, 'redeemed', c.redeemed)) as coupons
-    from tickets t join ticket_types tt on tt.id=t.ticket_type_id
-    join orders o on o.id=t.order_id
-    left join coupons c on c.ticket_id=t.id
-    left join coupon_types ct on ct.id=c.coupon_type_id
-    where t.id=${id}
-    group by t.checked_in_at, tt.name, o.buyer_name, t.qty`;
-
-  return Response.json({ ok: true, issued: coupons, ticket: info[0] });
+  if (did === 0) return Response.json({ ok: false, reason: 'already_checked_in', order: info, coupons });
+  return Response.json({ ok: true, order: info, coupons });
 }

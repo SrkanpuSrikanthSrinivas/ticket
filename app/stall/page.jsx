@@ -40,26 +40,26 @@ export default function Stall() {
     const data = await res.json();
     if (!data.matches?.length) { setBusy(false); setState({ kind: 'none', q: val }); return; }
     const m = data.matches[0];
-    if (m.status !== 'checked_in') { setBusy(false); setState({ kind: 'notin', name: m.buyer_name }); return; }
-    await loadTicket(m.id);
+    if (m.status === 'valid') { setBusy(false); setState({ kind: 'notin', name: m.buyer_name }); return; }
+    await loadOrder(m.id);
   }
 
-  async function loadTicket(ticketId) {
+  async function loadOrder(orderId) {
     setBusy(true);
-    const res = await fetch('/api/ticket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticketId, staffPin: pin }) });
+    const res = await fetch('/api/ticket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, staffPin: pin }) });
     const data = await res.json(); setBusy(false);
-    if (data.ticket) setState({ kind: 'ticket', ticket: data.ticket });
+    if (data.order) setState({ kind: 'ticket', ticket: data.order, coupons: data.coupons || [] });
   }
 
-  async function redeem(couponId, ticketId) {
+  async function redeem(couponId, orderId) {
     setBusy(true);
     await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ couponId, staffPin: pin }) });
-    await loadTicket(ticketId);
+    await loadOrder(orderId);
   }
-  async function redeemAll(ticketId) {
+  async function redeemAll(orderId) {
     setBusy(true);
-    await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redeemAll: true, ticketId, staffPin: pin }) });
-    await loadTicket(ticketId);
+    await fetch('/api/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ redeemAll: true, orderId, staffPin: pin }) });
+    await loadOrder(orderId);
   }
   function reset() { setQ(''); setState(null); }
 
@@ -86,7 +86,7 @@ export default function Stall() {
   }
 
   const t = state?.kind === 'ticket' ? state.ticket : null;
-  const coupons = t?.coupons?.filter((c) => c.id) || [];
+  const coupons = (state?.coupons || []).filter((c) => c.id);
   const left = coupons.filter((c) => !c.redeemed).length;
   const valueLeft = coupons.filter((c) => !c.redeemed).reduce((s, c) => s + (c.value_cents || 0), 0);
 
@@ -129,7 +129,7 @@ export default function Stall() {
           <div className="card" style={{ marginTop: 16 }}>
             <div className="li" style={{ border: 0, padding: '0 0 12px' }}>
               <div className="avatar">{initials(t.buyer_name)}</div>
-              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{t.buyer_name}</div><div className="hint">{t.type_name} · {t.code}</div></div>
+              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{t.buyer_name}</div><div className="hint">{t.items} · {t.code}</div></div>
               <span className="pill in">{left} left · {money(valueLeft)}</span>
             </div>
             <div className="divider" />

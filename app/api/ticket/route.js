@@ -1,25 +1,24 @@
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { sql } from '../../../lib/db';
 
-// Staff: full detail for one ticket incl. its coupons (used by the stall screen
-// and the "already checked in" view).
 export async function POST(req) {
-  const { ticketId, staffPin } = await req.json().catch(() => ({}));
+  const { orderId, staffPin } = await req.json().catch(() => ({}));
   if (staffPin !== process.env.STAFF_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
-  if (!ticketId) return Response.json({ error: 'missing' }, { status: 400 });
+  if (!orderId) return Response.json({ error: 'missing' }, { status: 400 });
 
-  const rows = await sql`
-    select t.id, t.code, t.qty, t.status, t.checked_in_at,
-           tt.name as type_name, o.buyer_name,
-           coalesce(json_agg(json_build_object('id', c.id, 'name', ct.name, 'value_cents', ct.value_cents, 'redeemed', c.redeemed))
-                    filter (where c.id is not null), '[]'::json) as coupons
-    from tickets t
-    join ticket_types tt on tt.id=t.ticket_type_id
-    join orders o on o.id=t.order_id
-    left join coupons c on c.ticket_id=t.id
-    left join coupon_types ct on ct.id=c.coupon_type_id
-    where t.id=${ticketId}
-    group by t.id, tt.name, o.buyer_name`;
-  return Response.json({ ticket: rows[0] || null });
+  const info = (await sql`select o.id, o.buyer_name, o.code,
+      count(t.*)::int ticket_count,
+      count(*) filter (where t.status='checked_in')::int checked_count,
+      string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as items
+    from orders o join tickets t on t.order_id=o.id join ticket_types tt on tt.id=t.ticket_type_id
+    where o.id=${orderId} group by o.id, o.buyer_name, o.code`)[0];
+  if (!info) return Response.json({ order: null });
+
+  const coupons = await sql`select c.id, ct.name, ct.value_cents, c.redeemed
+    from coupons c join tickets t on t.id=c.ticket_id join coupon_types ct on ct.id=c.coupon_type_id
+    where t.order_id=${orderId} order by ct.sort`;
+  const checked_in = info.ticket_count > 0 && info.checked_count >= info.ticket_count;
+  return Response.json({ order: { ...info, checked_in }, coupons });
 }

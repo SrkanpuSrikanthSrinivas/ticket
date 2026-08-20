@@ -88,21 +88,26 @@ export default function Buy() {
   if (stage === 'done' && order) return (
     <div className="wrap">
       <div className="eyebrow">You're in</div>
-      {order.tickets.map((t) => (
-        <div className="pass" key={t.code} style={{ marginBottom: 14 }}>
-          <div className="body">
-            <div className="brandline">🎟 {ev.name}</div>
-            <div className="who">{order.buyerName}</div>
-            <span className="type">{t.typeName}{t.qty > 1 ? ` × ${t.qty}` : ''}</span>
-            <p className="hint" style={{ marginTop: 12 }}>{ev.date || 'Date TBA'} · {ev.venue || ''}</p>
+      <div className="pass" style={{ marginBottom: 14 }}>
+        <div className="body">
+          <div className="brandline">🎟 {ev.name}</div>
+          <div className="who">{order.buyerName}</div>
+          <div style={{ marginTop: 10 }}>
+            {order.items.map((it) => (
+              <div key={it.typeName} className="row" style={{ justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
+                <span>{it.typeName}</span><span style={{ fontWeight: 700 }}>× {it.qty}</span>
+              </div>
+            ))}
           </div>
-          <div className="stub">
-            <div className="qrbox"><img src={`/api/qr?token=${encodeURIComponent(t.token)}`} alt="Ticket QR" width="150" height="150" style={{ display: 'block', width: 150, height: 150 }} /></div>
-            <div className="code">{t.code}</div>
-          </div>
+          <p className="hint" style={{ marginTop: 12 }}>{ev.date || 'Date TBA'} · {ev.venue || ''}</p>
         </div>
-      ))}
-      <p className="hint">{order.emailed ? `A copy is on its way to ${buyer.email}.` : 'Save or screenshot these tickets.'} Food coupons are issued at check-in.</p>
+        <div className="stub">
+          <div className="qrbox"><img src={`/api/qr?token=${encodeURIComponent(order.token)}`} alt="Entry QR" width="150" height="150" style={{ display: 'block', width: 150, height: 150 }} /></div>
+          <div className="code">{order.code}</div>
+          <div className="cpn" style={{ fontSize: 10 }}>one code for the group</div>
+        </div>
+      </div>
+      <p className="hint">{order.emailed ? `A copy is on its way to ${buyer.email}.` : 'Save or screenshot this ticket.'} One QR admits your whole group. Food coupons are issued at check-in.</p>
       <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={reset}>Buy more tickets</button>
     </div>
   );

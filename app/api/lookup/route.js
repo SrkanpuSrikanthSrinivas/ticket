@@ -1,29 +1,45 @@
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { sql } from '../../../lib/db';
 import { verifyTicket } from '../../../lib/token';
 
-// Staff lookup: accepts a scanned signed token, a human code, or a name/email.
+function decorate(rows) {
+  return rows.map((r) => ({ ...r, status: r.ticket_count > 0 && r.checked_count >= r.ticket_count ? 'checked_in' : (r.checked_count > 0 ? 'partial' : 'valid') }));
+}
+
 export async function POST(req) {
   const { q, staffPin } = await req.json().catch(() => ({}));
   if (staffPin !== process.env.STAFF_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!q) return Response.json({ matches: [] });
 
-  const asId = verifyTicket(q);
+  const orderId = verifyTicket(q); // a scanned QR is a signed order id
   let rows;
-  if (asId) {
+  if (orderId) {
     rows = await sql`
-      select t.id, t.code, t.qty, t.status, t.checked_in_at, tt.name as type_name, o.buyer_name
-      from tickets t join ticket_types tt on tt.id=t.ticket_type_id
-      join orders o on o.id=t.order_id where t.id=${asId}`;
+      select o.id, o.buyer_name, o.buyer_email, o.code,
+        count(t.*)::int ticket_count,
+        count(*) filter (where t.status='checked_in')::int checked_count,
+        coalesce(sum(t.qty*tt.admits),0)::int guests,
+        string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as items,
+        max(t.checked_in_at) as checked_in_at
+      from orders o join tickets t on t.order_id=o.id join ticket_types tt on tt.id=t.ticket_type_id
+      where o.id=${orderId} group by o.id`;
   } else {
     const like = `%${q}%`;
     rows = await sql`
-      select t.id, t.code, t.qty, t.status, t.checked_in_at, tt.name as type_name, o.buyer_name
-      from tickets t join ticket_types tt on tt.id=t.ticket_type_id
-      join orders o on o.id=t.order_id
-      where t.code ilike ${like} or o.buyer_name ilike ${like} or o.buyer_email ilike ${like}
-      order by o.buyer_name limit 51`;
+      select o.id, o.buyer_name, o.buyer_email, o.code,
+        count(t.*)::int ticket_count,
+        count(*) filter (where t.status='checked_in')::int checked_count,
+        coalesce(sum(t.qty*tt.admits),0)::int guests,
+        string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as items,
+        max(t.checked_in_at) as checked_in_at
+      from orders o join tickets t on t.order_id=o.id join ticket_types tt on tt.id=t.ticket_type_id
+      where o.buyer_name ilike ${like} or o.buyer_email ilike ${like} or o.code ilike ${like}
+         or o.id in (select order_id from tickets where code ilike ${like})
+      group by o.id order by o.buyer_name limit 51`;
   }
-  const truncated = rows.length > 50; return Response.json({ matches: rows.slice(0, 50), truncated });
+  const decorated = decorate(rows);
+  const truncated = decorated.length > 50;
+  return Response.json({ matches: decorated.slice(0, 50), truncated });
 }
