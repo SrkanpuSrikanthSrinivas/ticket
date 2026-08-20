@@ -10,8 +10,8 @@ export async function GET(req) {
     select o.code, o.buyer_name, o.buyer_email, o.buyer_phone as mobile, o.buyer_country as country,
       string_agg(tt.name || ' x' || t.qty, '; ' order by tt.sort) as items,
       coalesce(sum(t.qty*tt.admits),0)::int guests,
-      case when count(*) filter (where t.status='checked_in') = count(*) then 'checked_in'
-           when count(*) filter (where t.status='checked_in') > 0 then 'partial' else 'valid' end as status,
+      case when sum(case when t.status='checked_in' then 1 else 0 end) = count(*) then 'checked_in'
+           when sum(case when t.status='checked_in' then 1 else 0 end) > 0 then 'partial' else 'valid' end as status,
       to_char(max(t.checked_in_at),'YYYY-MM-DD HH24:MI') as checked_in
     from orders o join tickets t on t.order_id=o.id join ticket_types tt on tt.id=t.ticket_type_id
     group by o.id order by o.buyer_name`;

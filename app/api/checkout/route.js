@@ -36,7 +36,7 @@ export async function POST(req) {
   for (const c of cart) {
     const t = (await sql`
       select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, tt.active,
-             e.name as event_name, e.event_date, e.venue, e.email_subject, e.email_body
+             e.name as event_name, e.event_date, e.venue, e.details as event_details, e.email_subject, e.email_body
       from ticket_types tt join events e on e.id = tt.event_id
       where tt.id=${c.ticketTypeId} and tt.active=true`)[0];
     if (!t) return Response.json({ error: 'ticket_unavailable', message: 'A selected ticket is no longer available.' }, { status: 404 });
@@ -83,7 +83,7 @@ export async function POST(req) {
   try {
     emailRes = await sendTicketEmail({
       to: email, buyerName: name,
-      event: { name: ev0.event_name, event_date: ev0.event_date, venue: ev0.venue, email_subject: ev0.email_subject, email_body: ev0.email_body },
+      event: { name: ev0.event_name, event_date: ev0.event_date, venue: ev0.venue, details: ev0.event_details, email_subject: ev0.email_subject, email_body: ev0.email_body },
       token: orderToken, code: orderCode, items: tickets, baseUrl,
     });
   } catch (e) { emailRes = { ok: false, error: String(e?.message || e) }; }

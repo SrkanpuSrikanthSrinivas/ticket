@@ -138,3 +138,27 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .rtable td{padding:10px 6px;border-bottom:1px solid var(--line-2)}
 .rtable td:last-child,.rtable th:last-child{text-align:right}
 .pass .stub .qrbox img{display:block;width:150px;height:150px;border-radius:6px}
+
+/* --- gate check-in cards (professional) --- */
+.gcard{border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#fff;box-shadow:var(--shadow);margin-top:16px}
+.gcard .ghead{padding:18px 20px;display:flex;align-items:center;gap:14px}
+.gcard.ready .ghead{background:linear-gradient(135deg,#3B1E54,#4E2A6E);color:#fff}
+.gcard.ok .ghead{background:linear-gradient(135deg,#1B998B,#12756a);color:#fff}
+.gcard.warn .ghead{background:#fff8ee}
+.gcard .gav{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-weight:800;font-family:"Bricolage Grotesque";flex:none}
+.gcard.warn .gav{background:#f0dcb4;color:#7a5400}
+.gcard .gname{font-family:"Bricolage Grotesque";font-weight:800;font-size:20px;line-height:1.1}
+.gcard .gsub{font-size:13px;opacity:.85;margin-top:3px}
+.gcard.warn .gname{color:var(--ink)} .gcard.warn .gsub{color:var(--muted)}
+.gbadge{margin-left:auto;text-align:center;flex:none}
+.gbadge .gn{font-family:"Bricolage Grotesque";font-weight:800;font-size:26px;line-height:1}
+.gbadge .gl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.85}
+.gbody{padding:16px 20px}
+.gitems{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+.gitem{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line-2);font-size:15px}
+.gitem:last-child{border-bottom:0}
+.gitem b{font-family:"Space Mono";color:var(--plum)}
+.gcode{font-family:"Space Mono";font-size:12px;color:var(--muted);margin-top:8px}
+.coupon-total{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px}
+.coupon-total .ct-l{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.coupon-total .ct-v{font-family:"Bricolage Grotesque";font-weight:800;color:var(--marigold-ink)}

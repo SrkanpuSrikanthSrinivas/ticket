@@ -5,7 +5,7 @@ import { sql } from '../../../lib/db';
 import { verifyTicket } from '../../../lib/token';
 
 function decorate(rows) {
-  return rows.map((r) => ({ ...r, status: r.ticket_count > 0 && r.checked_count >= r.ticket_count ? 'checked_in' : (r.checked_count > 0 ? 'partial' : 'valid') }));
+  return rows.map((r) => ({ ...r, status: Number(r.ticket_count) > 0 && Number(r.checked_count) >= Number(r.ticket_count) ? 'checked_in' : (Number(r.checked_count) > 0 ? 'partial' : 'valid') }));
 }
 
 export async function POST(req) {
@@ -18,8 +18,8 @@ export async function POST(req) {
   if (orderId) {
     rows = await sql`
       select o.id, o.buyer_name, o.buyer_email, o.code,
-        count(t.*)::int ticket_count,
-        count(*) filter (where t.status='checked_in')::int checked_count,
+        count(t.id)::int ticket_count,
+        coalesce(sum(case when t.status='checked_in' then 1 else 0 end),0)::int checked_count,
         coalesce(sum(t.qty*tt.admits),0)::int guests,
         string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as items,
         max(t.checked_in_at) as checked_in_at
@@ -29,8 +29,8 @@ export async function POST(req) {
     const like = `%${q}%`;
     rows = await sql`
       select o.id, o.buyer_name, o.buyer_email, o.code,
-        count(t.*)::int ticket_count,
-        count(*) filter (where t.status='checked_in')::int checked_count,
+        count(t.id)::int ticket_count,
+        coalesce(sum(case when t.status='checked_in' then 1 else 0 end),0)::int checked_count,
         coalesce(sum(t.qty*tt.admits),0)::int guests,
         string_agg(tt.name || (case when t.qty>1 then ' ×'||t.qty else '' end), ', ' order by tt.sort) as items,
         max(t.checked_in_at) as checked_in_at

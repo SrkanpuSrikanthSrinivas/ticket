@@ -9,6 +9,12 @@ function loadScript(src) {
   });
 }
 const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
+function splitItems(str) {
+  return String(str || '').split(', ').filter(Boolean).map((part) => {
+    const m = part.match(/^(.*?)\s*×\s*(\d+)$/);
+    return m ? { name: m[1], qty: m[2] } : { name: part, qty: 1 };
+  });
+}
 const initials = (s) => String(s || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 
 export default function Gate() {
@@ -152,37 +158,52 @@ export default function Gate() {
         )}
 
         {card?.kind === 'ready' && (
-          <div className="result" style={{ marginTop: 16 }}>
-            <div className="big">Ready at the gate</div>
-            <div className="li" style={{ border: 0, padding: '12px 0 4px' }}>
-              <div className="avatar">{initials(card.buyer_name)}</div>
-              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{card.buyer_name}</div>
-                <div className="hint">{card.items} · {card.guests} guest{card.guests === 1 ? '' : 's'} · {card.code}</div></div>
+          <div className="gcard ready">
+            <div className="ghead">
+              <div className="gav">{initials(card.buyer_name)}</div>
+              <div><div className="gname">{card.buyer_name}</div><div className="gsub">Ready to check in</div></div>
+              <div className="gbadge"><div className="gn">{card.guests}</div><div className="gl">guest{card.guests === 1 ? '' : 's'}</div></div>
             </div>
-            <button className="btn btn-go btn-block" style={{ marginTop: 8 }} disabled={busy} onClick={() => doCheckin(card.id)}>
-              {busy ? 'Checking in…' : `Check in ${card.guests} guest${card.guests === 1 ? '' : 's'} & issue coupons`}
-            </button>
+            <div className="gbody">
+              <div className="gitems">{splitItems(card.items).map((it, i) => (
+                <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>
+              ))}</div>
+              <div className="gcode">{card.code}</div>
+              <button className="btn btn-go btn-block" style={{ marginTop: 14 }} disabled={busy} onClick={() => doCheckin(card.id)}>
+                {busy ? 'Checking in…' : `Check in & issue coupons`}
+              </button>
+            </div>
           </div>
         )}
 
         {card?.kind === 'ok' && (
-          <div className="result ok" style={{ marginTop: 16 }}>
-            <div className="big"><span className="check">✓</span> {card.buyer_name} — {card.guests} in</div>
-            <p className="hint" style={{ marginTop: 6 }}>{card.items}</p>
-            <div className="eyebrow" style={{ marginTop: 14 }}>Coupons issued — hand these over</div>
-            <div className="chips">
-              {(card.coupons || []).filter((c) => c.id).map((c) => <span key={c.id} className="chip">🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span>)}
-              {(!card.coupons || card.coupons.filter((c) => c.id).length === 0) && <span className="hint">No coupons for this order.</span>}
+          <div className="gcard ok">
+            <div className="ghead">
+              <div className="gav"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></div>
+              <div><div className="gname">{card.buyer_name}</div><div className="gsub">Checked in · {card.items}</div></div>
+              <div className="gbadge"><div className="gn">{card.guests}</div><div className="gl">in</div></div>
             </div>
-            <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }} onClick={reset}>Next group</button>
+            <div className="gbody">
+              <div className="coupon-total"><span className="ct-l">Food coupons issued</span><span className="ct-v">{money((card.coupons || []).reduce((s, c) => s + (c.value_cents || 0), 0))}</span></div>
+              <div className="chips">
+                {(card.coupons || []).filter((c) => c.id).map((c) => <span key={c.id} className="chip">🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span>)}
+                {(!card.coupons || card.coupons.filter((c) => c.id).length === 0) && <span className="hint">No coupons for this order.</span>}
+              </div>
+              <button className="btn btn-primary btn-block" style={{ marginTop: 16 }} onClick={reset}>Next group →</button>
+            </div>
           </div>
         )}
 
         {card?.kind === 'warn' && (
-          <div className="result warn" style={{ marginTop: 16 }}>
-            <div className="big">⚠️ Already checked in</div>
-            <p className="hint" style={{ marginTop: 6 }}>{card.buyer_name} — {card.items}{card.checked_in_at ? ` · ${new Date(card.checked_in_at).toLocaleString()}` : ''}.</p>
-            <button className="btn btn-ghost btn-block" style={{ marginTop: 12 }} onClick={reset}>Next group</button>
+          <div className="gcard warn">
+            <div className="ghead">
+              <div className="gav">{initials(card.buyer_name)}</div>
+              <div><div className="gname">{card.buyer_name}</div><div className="gsub">⚠️ Already checked in{card.checked_in_at ? ` · ${new Date(card.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</div></div>
+            </div>
+            <div className="gbody">
+              <div className="gsub" style={{ color: 'var(--muted)' }}>{card.items}</div>
+              <button className="btn btn-ghost btn-block" style={{ marginTop: 12 }} onClick={reset}>Next group</button>
+            </div>
           </div>
         )}
       </div>
