@@ -137,3 +137,4 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .rtable th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line)}
 .rtable td{padding:10px 6px;border-bottom:1px solid var(--line-2)}
 .rtable td:last-child,.rtable th:last-child{text-align:right}
+.pass .stub .qrbox img{display:block;width:150px;height:150px;border-radius:6px}

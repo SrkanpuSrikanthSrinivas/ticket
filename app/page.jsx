@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import QRCode from 'qrcode';
 
 function loadScript(src) {
   return new Promise((res, rej) => {
@@ -23,17 +22,12 @@ export default function Buy() {
   const [ticket, setTicket] = useState(null);
   const dropinRef = useRef(null);
   const instRef = useRef(null);
-  const qrRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/event', { cache: 'no-store' }).then((r) => r.json())
       .then((d) => d.error ? setErr('No event is open for sales yet.') : setEv(d))
       .catch(() => setErr('Could not load the event.'));
   }, []);
-
-  useEffect(() => {
-    if (ticket && qrRef.current) QRCode.toCanvas(qrRef.current, ticket.token, { width: 172, margin: 1 });
-  }, [ticket]);
 
   const tier = ev?.ticketTypes?.find((t) => t.id === sel);
   const isPaid = tier && !tier.is_comp && tier.price_cents > 0;
@@ -78,8 +72,8 @@ export default function Buy() {
         else setErr(data.message || 'Payment could not be completed.');
         setBusy(false); return;
       }
-      setTicket({ ...data, name: `${buyer.first} ${buyer.last}`.trim(), typeName: tier.name, qty });
       if (instRef.current) { try { await instRef.current.teardown(); } catch (e) {} instRef.current = null; }
+      setTicket({ ...data, name: `${buyer.first} ${buyer.last}`.trim(), typeName: tier.name, qty });
       setStage('done');
     } catch (e) { setErr('Something went wrong. Please try again.'); }
     setBusy(false);
@@ -97,10 +91,12 @@ export default function Buy() {
           <div className="who">{ticket.name}</div>
           <span className="type">{ticket.typeName}{ticket.qty > 1 ? ` × ${ticket.qty}` : ''}</span>
           <p className="hint" style={{ marginTop: 14 }}>{ev.date || 'Date TBA'} · {ev.venue || ''}</p>
-          <p className="hint">A copy is on its way to {buyer.email}. Food coupons are issued at check-in.</p>
+          {ticket.emailed
+            ? <p className="hint">A copy is on its way to {buyer.email}. Food coupons are issued at check-in.</p>
+            : <p className="hint">Save or screenshot this ticket. Food coupons are issued at check-in.</p>}
         </div>
         <div className="stub">
-          <div className="qrbox"><canvas ref={qrRef} /></div>
+          <div className="qrbox"><img src={`/api/qr?token=${encodeURIComponent(ticket.token)}`} alt="Ticket QR" width="150" height="150" style={{ display: 'block', width: 150, height: 150 }} /></div>
           <div className="code">{ticket.code}</div>
         </div>
       </div>

@@ -71,12 +71,18 @@ export async function POST(req) {
 
   const token = signTicket(ticketId);
   const baseUrl = new URL(req.url).origin;
-  sendTicketEmail({
-    to: email, buyerName: name,
-    event: { name: tt.event_name, event_date: tt.event_date, venue: tt.venue,
-             email_subject: tt.email_subject, email_body: tt.email_body },
-    ticketTypeName: tt.name, code, token, qty: units, baseUrl,
-  }).catch((e) => console.error('email failed', e));
+  let emailRes = { ok: false };
+  try {
+    emailRes = await sendTicketEmail({
+      to: email, buyerName: name,
+      event: { name: tt.event_name, event_date: tt.event_date, venue: tt.venue,
+               email_subject: tt.email_subject, email_body: tt.email_body },
+      ticketTypeName: tt.name, code, token, qty: units, baseUrl,
+    });
+  } catch (e) { emailRes = { ok: false, error: String(e?.message || e) }; }
+  if (!emailRes.ok) console.error('ticket email not sent:', emailRes.status, emailRes.body || emailRes.error || emailRes.reason);
 
-  return Response.json({ ok: true, code, token, ticketId });
+  return Response.json({ ok: true, code, token, ticketId,
+    emailed: !!emailRes.ok,
+    email_error: emailRes.ok ? null : (emailRes.body || emailRes.error || emailRes.reason || `status ${emailRes.status || '?'}`) });
 }
