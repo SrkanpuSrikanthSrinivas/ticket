@@ -125,3 +125,15 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .pricewrap{position:relative}
 .pricewrap span{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600}
 .pricewrap input{padding-left:26px}
+
+/* --- report --- */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:600px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 15px}
+.stat .n{font-family:"Bricolage Grotesque";font-weight:800;font-size:26px;line-height:1}
+.stat .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
+.stat.teal .n{color:var(--teal)} .stat.mari .n{color:var(--marigold-ink)} .stat.plum .n{color:var(--plum)}
+.rtable{width:100%;border-collapse:collapse;font-size:14px}
+.rtable th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line)}
+.rtable td{padding:10px 6px;border-bottom:1px solid var(--line-2)}
+.rtable td:last-child,.rtable th:last-child{text-align:right}

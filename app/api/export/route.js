@@ -6,7 +6,7 @@ import { sql } from '../../../lib/db';
 // in case venue wifi drops mid-event.
 export async function GET(req) {
   const pin = new URL(req.url).searchParams.get('pin');
-  if (pin !== process.env.STAFF_PIN) return new Response('unauthorized', { status: 401 });
+  if (pin !== process.env.STAFF_PIN && pin !== process.env.ADMIN_PIN) return new Response('unauthorized', { status: 401 });
 
   const rows = await sql`
     select t.code, o.buyer_name, o.buyer_email, o.buyer_phone as mobile, o.buyer_country as country, tt.name as type, t.qty, t.status,
