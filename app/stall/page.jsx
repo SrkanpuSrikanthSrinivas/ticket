@@ -48,7 +48,7 @@ export default function Stall() {
     setBusy(true);
     const res = await fetch('/api/ticket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, staffPin: pin }) });
     const data = await res.json(); setBusy(false);
-    if (data.order) setState({ kind: 'ticket', ticket: data.order, coupons: data.coupons || [] });
+    if (data.order) setState({ kind: 'ticket', ticket: data.order, coupons: data.coupons || [], ticketRows: data.ticketRows || [] });
   }
 
   async function redeem(couponId, orderId) {
@@ -129,9 +129,14 @@ export default function Stall() {
           <div className="card" style={{ marginTop: 16 }}>
             <div className="li" style={{ border: 0, padding: '0 0 12px' }}>
               <div className="avatar">{initials(t.buyer_name)}</div>
-              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{t.buyer_name}</div><div className="hint">{t.items} · {t.code}</div></div>
+              <div className="grow"><div style={{ fontWeight: 600, fontSize: 17 }}>{t.buyer_name}</div><div className="hint">{t.code}</div></div>
               <span className="pill in">{left} left · {money(valueLeft)}</span>
             </div>
+            <div className="eyebrow stall-tickets" style={{ margin: '8px 0 4px' }}>Tickets</div>
+            <table className="cart-tbl"><tbody>
+              {(state.ticketRows || []).map((r, i) => (<tr key={i}><td>{r.name}</td><td className="q">×{r.qty}</td></tr>))}
+            </tbody></table>
+            <div className="eyebrow" style={{ margin: '12px 0 4px' }}>Food coupons</div>
             <div className="divider" />
             <div className="chips">
               {coupons.length === 0 && <span className="hint">No coupons on this ticket.</span>}

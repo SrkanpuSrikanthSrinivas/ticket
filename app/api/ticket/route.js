@@ -19,6 +19,22 @@ export async function POST(req) {
   const coupons = await sql`select c.id, ct.name, ct.value_cents, c.redeemed
     from coupons c join tickets t on t.id=c.ticket_id join coupon_types ct on ct.id=c.coupon_type_id
     where t.order_id=${orderId} order by ct.sort`;
+
+  // What coupons WOULD be issued for this order (from allotments) — grouped by denomination.
+  const couponPreview = await sql`
+    select ct.name, ct.value_cents, coalesce(sum(a.qty_per_guest * t.qty),0)::int qty
+    from tickets t
+    join ticket_coupon_allotments a on a.ticket_type_id = t.ticket_type_id
+    join coupon_types ct on ct.id = a.coupon_type_id
+    where t.order_id=${orderId}
+    group by ct.id, ct.name, ct.value_cents order by ct.sort`;
+
+  // Ticket breakdown (type × qty) for a table anywhere it's shown.
+  const ticketRows = await sql`
+    select tt.name, coalesce(sum(t.qty),0)::int qty
+    from tickets t join ticket_types tt on tt.id=t.ticket_type_id
+    where t.order_id=${orderId} group by tt.id, tt.name, tt.sort order by tt.sort`;
+
   const checked_in = Number(info.ticket_count) > 0 && Number(info.checked_count) >= Number(info.ticket_count);
-  return Response.json({ order: { ...info, checked_in }, coupons });
+  return Response.json({ order: { ...info, checked_in }, coupons, couponPreview, ticketRows });
 }

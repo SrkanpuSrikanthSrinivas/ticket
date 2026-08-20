@@ -12,7 +12,7 @@ const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 export default function Buy() {
   const [ev, setEv] = useState(null);
   const [cart, setCart] = useState({});           // { ticketTypeId: qty }
-  const [buyer, setBuyer] = useState({ first: '', last: '', email: '', mobile: '', country: '', zip: '' });
+  const [buyer, setBuyer] = useState({ first: '', last: '', email: '', mobile: '', zip: '' });
   const [stage, setStage] = useState('pick');     // pick | pay | done
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -37,7 +37,6 @@ export default function Buy() {
     if (!buyer.first.trim() || !buyer.last.trim()) return 'First and last name are required.';
     if (!buyer.email.trim()) return 'Email is required.';
     if (!buyer.mobile.trim()) return 'Mobile number is required.';
-    if (!buyer.country) return 'Please select a country.';
     return '';
   }
 
@@ -79,7 +78,7 @@ export default function Buy() {
     setBusy(false);
   }
 
-  function reset() { setOrder(null); setCart({}); setBuyer({ first: '', last: '', email: '', mobile: '', country: '', zip: '' }); setStage('pick'); }
+  function reset() { setOrder(null); setCart({}); setBuyer({ first: '', last: '', email: '', mobile: '', zip: '' }); setStage('pick'); }
 
   if (err && !ev && stage === 'pick') return <div className="wrap"><div className="card">{err}</div></div>;
   if (!ev) return <div className="wrap"><div className="card">Loading…</div></div>;
@@ -171,7 +170,13 @@ export default function Buy() {
 
       {itemCount > 0 && (
         <div className="card stack" style={{ marginTop: 16 }}>
-          <div className="row" style={{ justifyContent: 'space-between', fontWeight: 700 }}>
+          <div className="eyebrow" style={{ marginBottom: 6 }}>Your tickets</div>
+          <table className="cart-tbl"><tbody>
+            {lineItems.map((t) => (
+              <tr key={t.id}><td>{t.name}</td><td className="q">×{t.qty}</td><td className="p">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents * t.qty)}</td></tr>
+            ))}
+          </tbody></table>
+          <div className="row" style={{ justifyContent: 'space-between', fontWeight: 800, marginTop: 6 }}>
             <span>{itemCount} ticket{itemCount > 1 ? 's' : ''}</span><span>{amountCents ? money(amountCents) : 'Free'}</span>
           </div>
           <div className="divider" />
@@ -184,10 +189,6 @@ export default function Buy() {
             <div className="grow"><label className="f">Mobile number *</label><input type="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: e.target.value })} placeholder="(469) …" /></div>
             <div style={{ width: 130 }}><label className="f">Zip code</label><input value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" /></div>
           </div>
-          <div><label className="f">Country *</label>
-            <select value={buyer.country} onChange={(e) => setBuyer({ ...buyer, country: e.target.value })}>
-              <option value="">Select</option><option value="USA">USA</option><option value="India">India</option><option value="Canada">Canada</option>
-            </select></div>
           {err && <div className="err">{err}</div>}
           <button className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
             {amountCents ? `Continue to payment · ${money(amountCents)}` : 'Get tickets'}

@@ -9,6 +9,11 @@ function loadScript(src) {
   });
 }
 const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
+function groupCoupons(list) {
+  const m = {};
+  (list || []).filter((c) => c.id).forEach((c) => { const k = c.name + '|' + c.value_cents; (m[k] ||= { name: c.name, value_cents: c.value_cents, qty: 0 }).qty++; });
+  return Object.values(m);
+}
 function splitItems(str) {
   return String(str || '').split(', ').filter(Boolean).map((part) => {
     const m = part.match(/^(.*?)\s*×\s*(\d+)$/);
@@ -56,10 +61,17 @@ export default function Gate() {
     setMatches(data.matches);
   }
 
-  function showReady(m) {
-    setMatches(null);
-    if (m.status === 'checked_in') setCard({ kind: 'warn', ...m });
-    else setCard({ kind: 'ready', ...m });
+  async function showReady(m) {
+    setMatches(null); setBusy(true);
+    let detail = {};
+    try {
+      const res = await fetch('/api/ticket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: m.id, staffPin: pin }) });
+      const data = await res.json();
+      detail = { ticketRows: data.ticketRows || [], couponPreview: data.couponPreview || [], coupons: data.coupons || [], checked_in: data.order?.checked_in };
+    } catch (e) {}
+    setBusy(false);
+    const isIn = detail.checked_in ?? (m.status === 'checked_in');
+    setCard({ kind: isIn ? 'warn' : 'ready', ...m, ...detail });
   }
 
   async function doCheckin(orderId) {
@@ -165,10 +177,17 @@ export default function Gate() {
               <div className="gbadge"><div className="gn">{card.guests}</div><div className="gl">guest{card.guests === 1 ? '' : 's'}</div></div>
             </div>
             <div className="gbody">
-              <div className="gitems">{splitItems(card.items).map((it, i) => (
+              <div className="eyebrow" style={{ marginBottom: 4 }}>Tickets</div>
+              <div className="gitems">{(card.ticketRows?.length ? card.ticketRows : splitItems(card.items)).map((it, i) => (
                 <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>
               ))}</div>
-              <div className="gcode">{card.code}</div>
+              {card.couponPreview?.length > 0 && (<>
+                <div className="eyebrow" style={{ margin: '14px 0 4px' }}>Coupons to issue</div>
+                <div className="gitems">{card.couponPreview.map((c, i) => (
+                  <div className="gitem" key={i}><span>🍽 {c.name}</span><b>×{c.qty}</b></div>
+                ))}</div>
+              </>)}
+              <div className="gcode" style={{ marginTop: 10 }}>{card.code}</div>
               <button className="btn btn-go btn-block" style={{ marginTop: 14 }} disabled={busy} onClick={() => doCheckin(card.id)}>
                 {busy ? 'Checking in…' : `Check in & issue coupons`}
               </button>
@@ -184,12 +203,13 @@ export default function Gate() {
               <div className="gbadge"><div className="gn">{card.guests}</div><div className="gl">in</div></div>
             </div>
             <div className="gbody">
-              <div className="coupon-total"><span className="ct-l">Food coupons issued</span><span className="ct-v">{money((card.coupons || []).reduce((s, c) => s + (c.value_cents || 0), 0))}</span></div>
-              <div className="chips">
-                {(card.coupons || []).filter((c) => c.id).map((c) => <span key={c.id} className="chip">🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span>)}
-                {(!card.coupons || card.coupons.filter((c) => c.id).length === 0) && <span className="hint">No coupons for this order.</span>}
+              <div className="eyebrow" style={{ marginBottom: 4 }}>Coupons to hand over</div>
+              <div className="gitems">
+                {groupCoupons(card.coupons).map((c, i) => <div className="gitem" key={i}><span>🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span><b>×{c.qty}</b></div>)}
+                {groupCoupons(card.coupons).length === 0 && <div className="hint">No coupons for this order.</div>}
               </div>
-              <button className="btn btn-primary btn-block" style={{ marginTop: 16 }} onClick={reset}>Next group →</button>
+              <div className="coupon-total"><span className="ct-l">Total value</span><span className="ct-v">{money((card.coupons || []).reduce((s, c) => s + (c.value_cents || 0), 0))}</span></div>
+              <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={reset}>Next group →</button>
             </div>
           </div>
         )}
