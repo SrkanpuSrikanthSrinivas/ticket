@@ -47,6 +47,8 @@ create table if not exists orders (
   buyer_name text not null,
   buyer_email text not null,
   buyer_phone text,
+  buyer_country text,
+  buyer_zip text,
   amount_cents int not null default 0,
   braintree_txn_id text,
   status text not null default 'pending',  -- pending | paid | failed | refunded

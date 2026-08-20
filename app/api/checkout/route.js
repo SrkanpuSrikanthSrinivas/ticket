@@ -19,8 +19,15 @@ export async function POST(req) {
 
   const { ticketTypeId, qty = 1, buyer = {}, paymentMethodNonce } = body;
   const units = Math.max(1, parseInt(qty, 10) || 1);
-  if (!ticketTypeId || !buyer.name || !buyer.email)
-    return Response.json({ error: 'missing_fields' }, { status: 400 });
+  const first = (buyer.first || '').trim();
+  const last = (buyer.last || '').trim();
+  const name = `${first} ${last}`.trim() || (buyer.name || '').trim();
+  const email = (buyer.email || '').trim();
+  const mobile = (buyer.mobile || buyer.phone || '').trim();
+  const country = buyer.country || null;
+  const zip = (buyer.zip || '').trim() || null;
+  if (!ticketTypeId || !first || !last || !email)
+    return Response.json({ error: 'missing_fields', message: 'First name, last name and email are required.' }, { status: 400 });
 
   const tt = (await sql`
     select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp,
@@ -53,8 +60,8 @@ export async function POST(req) {
   const ticketId = randomUUID();
   const code = humanCode();
   try {
-    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, amount_cents, braintree_txn_id, status)
-              values (${orderId}, ${tt.event_id}, ${buyer.name}, ${buyer.email}, ${buyer.phone || null}, ${amountCents}, ${txnId}, 'paid')`;
+    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, amount_cents, braintree_txn_id, status)
+              values (${orderId}, ${tt.event_id}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${amountCents}, ${txnId}, 'paid')`;
     await sql`insert into tickets (id, order_id, event_id, ticket_type_id, code, qty)
               values (${ticketId}, ${orderId}, ${tt.event_id}, ${tt.id}, ${code}, ${units})`;
   } catch (e) {
@@ -65,7 +72,7 @@ export async function POST(req) {
   const token = signTicket(ticketId);
   const baseUrl = new URL(req.url).origin;
   sendTicketEmail({
-    to: buyer.email, buyerName: buyer.name,
+    to: email, buyerName: name,
     event: { name: tt.event_name, event_date: tt.event_date, venue: tt.venue,
              email_subject: tt.email_subject, email_body: tt.email_body },
     ticketTypeName: tt.name, code, token, qty: units, baseUrl,

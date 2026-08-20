@@ -16,7 +16,7 @@ export default function Buy() {
   const [ev, setEv] = useState(null);
   const [sel, setSel] = useState(null);
   const [qty, setQty] = useState(1);
-  const [buyer, setBuyer] = useState({ name: '', email: '', phone: '' });
+  const [buyer, setBuyer] = useState({ first: '', last: '', email: '', mobile: '', country: '', zip: '' });
   const [stage, setStage] = useState('pick'); // pick | pay | done
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -42,7 +42,10 @@ export default function Buy() {
   async function goPay() {
     setErr('');
     if (!tier) return setErr('Please choose a ticket.');
-    if (!buyer.name || !buyer.email) return setErr('Name and email are required.');
+    if (!buyer.first.trim() || !buyer.last.trim()) return setErr('First and last name are required.');
+    if (!buyer.email.trim()) return setErr('Email is required.');
+    if (!buyer.mobile.trim()) return setErr('Mobile number is required.');
+    if (!buyer.country) return setErr('Please select a country.');
     if (!isPaid) return submit(null);
     setStage('pay'); setBusy(true);
     try {
@@ -75,7 +78,7 @@ export default function Buy() {
         else setErr(data.message || 'Payment could not be completed.');
         setBusy(false); return;
       }
-      setTicket({ ...data, name: buyer.name, typeName: tier.name, qty });
+      setTicket({ ...data, name: `${buyer.first} ${buyer.last}`.trim(), typeName: tier.name, qty });
       if (instRef.current) { try { await instRef.current.teardown(); } catch (e) {} instRef.current = null; }
       setStage('done');
     } catch (e) { setErr('Something went wrong. Please try again.'); }
@@ -102,7 +105,7 @@ export default function Buy() {
         </div>
       </div>
       <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }}
-        onClick={() => { setTicket(null); setSel(null); setQty(1); setBuyer({ name: '', email: '', phone: '' }); setStage('pick'); }}>
+        onClick={() => { setTicket(null); setSel(null); setQty(1); setBuyer({ first: '', last: '', email: '', mobile: '', country: '', zip: '' }); setStage('pick'); }}>
         Buy another ticket
       </button>
     </div>
@@ -113,7 +116,7 @@ export default function Buy() {
       <div className="eyebrow">Payment</div>
       <div className="card stack">
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div><b>{tier.name}</b>{qty > 1 ? ` × ${qty}` : ''}<div className="hint">{buyer.name} · {buyer.email}</div></div>
+          <div><b>{tier.name}</b>{qty > 1 ? ` × ${qty}` : ''}<div className="hint">{buyer.first} {buyer.last} · {buyer.email}</div></div>
           <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: 22 }}>{money(amountCents)}</div>
         </div>
         <div ref={dropinRef} />
@@ -151,15 +154,30 @@ export default function Buy() {
         {tier && (
           <div className="card stack">
             <div className="row">
-              <div className="grow"><label className="f">Full name</label>
-                <input value={buyer.name} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} placeholder="Jane Rao" /></div>
-              <div style={{ width: 110 }}><label className="f">Qty</label>
+              <div className="grow"><label className="f">First name *</label>
+                <input value={buyer.first} onChange={(e) => setBuyer({ ...buyer, first: e.target.value })} placeholder="Jane" /></div>
+              <div className="grow"><label className="f">Last name *</label>
+                <input value={buyer.last} onChange={(e) => setBuyer({ ...buyer, last: e.target.value })} placeholder="Rao" /></div>
+            </div>
+            <div><label className="f">Email Id *</label>
+              <input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" /></div>
+            <div className="row">
+              <div className="grow"><label className="f">Mobile number *</label>
+                <input type="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: e.target.value })} placeholder="(469) …" /></div>
+              <div style={{ width: 130 }}><label className="f">Zip code</label>
+                <input value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" /></div>
+            </div>
+            <div className="row">
+              <div className="grow"><label className="f">Country *</label>
+                <select value={buyer.country} onChange={(e) => setBuyer({ ...buyer, country: e.target.value })}>
+                  <option value="">Select</option>
+                  <option value="USA">USA</option>
+                  <option value="India">India</option>
+                  <option value="Canada">Canada</option>
+                </select></div>
+              <div style={{ width: 110 }}><label className="f">Tickets</label>
                 <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, +e.target.value || 1))} /></div>
             </div>
-            <div><label className="f">Email</label>
-              <input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" /></div>
-            <div><label className="f">Phone (optional)</label>
-              <input value={buyer.phone} onChange={(e) => setBuyer({ ...buyer, phone: e.target.value })} placeholder="(469) …" /></div>
             {err && <div className="err">{err}</div>}
             <button className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
               {isPaid ? `Continue to payment · ${money(amountCents)}` : 'Get ticket'}
