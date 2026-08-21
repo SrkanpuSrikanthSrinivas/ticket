@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
 import { sql } from '../../../../lib/db';
+import { ensureSchema } from '../../../../lib/ensureSchema';
 
 export async function GET(req) {
+  await ensureSchema();
   const pin = new URL(req.url).searchParams.get('pin');
   if (pin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   const ev = (await sql`select id, name from events order by created_at desc limit 1`)[0];

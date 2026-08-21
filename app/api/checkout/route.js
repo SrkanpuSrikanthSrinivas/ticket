@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { randomUUID } from 'crypto';
 import { sql } from '../../../lib/db';
+import { ensureSchema } from '../../../lib/ensureSchema';
 import { gateway } from '../../../lib/braintree';
 import { signTicket, humanCode } from '../../../lib/token';
 import { sendTicketEmail } from '../../../lib/email';
@@ -11,6 +12,7 @@ import { sendTicketEmail } from '../../../lib/email';
 // PCI: never sees card data — Braintree Drop-in tokenizes on the buyer's device and
 // returns a one-time nonce; we store only the transaction id. (PCI SAQ A.)
 export async function POST(req) {
+  await ensureSchema();
   const body = await req.json().catch(() => null);
   if (!body) return Response.json({ error: 'bad_request' }, { status: 400 });
 

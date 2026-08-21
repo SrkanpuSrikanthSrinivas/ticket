@@ -2,10 +2,12 @@ export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
 import { sql } from '../../../../lib/db';
+import { ensureSchema } from '../../../../lib/ensureSchema';
 
 // Admin: full current setup for the console (event + coupon types + ticket types
 // with their coupon allotments).
 export async function GET(req) {
+  await ensureSchema();
   const pin = new URL(req.url).searchParams.get('pin');
   if (pin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
 

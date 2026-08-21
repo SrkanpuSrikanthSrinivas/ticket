@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import { sql } from '../../../lib/db';
+import { sql, ensureSchema } from '../../../lib/db';
 
 export async function GET(req) {
+  await ensureSchema();
   const pin = new URL(req.url).searchParams.get('pin');
   if (pin !== process.env.STAFF_PIN && pin !== process.env.ADMIN_PIN) return new Response('unauthorized', { status: 401 });
 

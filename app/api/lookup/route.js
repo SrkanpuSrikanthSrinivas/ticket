@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-import { sql } from '../../../lib/db';
+import { sql, ensureSchema } from '../../../lib/db';
 import { verifyTicket } from '../../../lib/token';
 
 function decorate(rows) {
@@ -9,6 +9,7 @@ function decorate(rows) {
 }
 
 export async function POST(req) {
+  await ensureSchema();
   const { q, staffPin } = await req.json().catch(() => ({}));
   if (staffPin !== process.env.STAFF_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!q) return Response.json({ matches: [] });

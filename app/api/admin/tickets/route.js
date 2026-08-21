@@ -2,12 +2,14 @@ export const dynamic = 'force-dynamic';
 
 import { randomUUID } from 'crypto';
 import { sql } from '../../../../lib/db';
+import { ensureSchema } from '../../../../lib/ensureSchema';
 
 export const BUILD = 'save-fix-3';
 
 // Create/update a ticket type + its coupon allotments. Plain sequential HTTP
 // writes — each statement commits on its own, so nothing can silently no-op.
 export async function POST(req) {
+  await ensureSchema();
   const b = await req.json().catch(() => ({}));
   if (b.adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized', message: 'Wrong admin PIN.' }, { status: 401 });
   if (!b.name || !b.name.trim()) return Response.json({ error: 'name_required', message: 'Ticket needs a name.' }, { status: 400 });

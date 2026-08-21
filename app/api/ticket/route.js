@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
 import { sql } from '../../../lib/db';
+import { ensureSchema } from '../../../lib/ensureSchema';
 
 export async function POST(req) {
+  await ensureSchema();
   const { orderId, staffPin } = await req.json().catch(() => ({}));
   if (staffPin !== process.env.STAFF_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!orderId) return Response.json({ error: 'missing' }, { status: 400 });

@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
 
-import { sql } from '../../../../lib/db';
+import { sql, ensureSchema } from '../../../../lib/db';
 
 // Admin: create or update the event details.
 export async function POST(req) {
+  await ensureSchema();
   const { adminPin, name, date, venue, tagline, details } = await req.json().catch(() => ({}));
   if (adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!name) return Response.json({ error: 'name_required' }, { status: 400 });
