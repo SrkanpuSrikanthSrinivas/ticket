@@ -8,12 +8,13 @@ export async function POST(req) {
   const { adminPin, to, subject, body } = await req.json().catch(() => ({}));
   if (adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
+  const brevo = !!(process.env.BREVO_API_KEY || '').trim();
   const resend = !!(process.env.RESEND_API_KEY || '').trim();
   const sendgrid = !!(process.env.SENDGRID_API_KEY || '').trim();
-  const provider = process.env.EMAIL_PROVIDER || (resend ? 'resend' : (sendgrid ? 'sendgrid' : 'none'));
-  const out = { provider, resend_key_set: resend, sendgrid_key_set: sendgrid, to: to || null };
+  const provider = process.env.EMAIL_PROVIDER || (brevo ? 'brevo' : (resend ? 'resend' : (sendgrid ? 'sendgrid' : 'none')));
+  const out = { provider, brevo_key_set: brevo, resend_key_set: resend, sendgrid_key_set: sendgrid, to: to || null };
 
-  if (provider === 'none') { out.result = 'FAIL — no email provider configured. Set RESEND_API_KEY (easiest) in Vercel and redeploy.'; return Response.json(out); }
+  if (provider === 'none') { out.result = 'FAIL — no email provider configured. Set BREVO_API_KEY (or RESEND/SENDGRID) in Vercel and redeploy.'; return Response.json(out); }
   if (!to) { out.result = 'Enter an email address to send a test.'; return Response.json(out); }
 
   const ev = (await sql`select name, event_date, venue, email_subject, email_body from events order by created_at desc, id desc limit 1`)[0] || {};

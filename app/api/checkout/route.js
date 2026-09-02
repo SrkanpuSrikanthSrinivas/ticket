@@ -32,28 +32,8 @@ export async function POST(req) {
   const mobile = (buyer.mobile || '').trim();
   const country = buyer.country || null;
   const zip = (buyer.zip || '').trim() || null;
-
-  // Validate buyer data server-side as well; never rely on client-side validation.
-  if (!first)
-    return Response.json({ error: 'missing_first_name', message: 'First name is required.' }, { status: 400 });
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$/.test(first))
-    return Response.json({ error: 'invalid_first_name', message: 'Please enter a valid first name.' }, { status: 400 });
-  if (!last)
-    return Response.json({ error: 'missing_last_name', message: 'Last name is required.' }, { status: 400 });
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$/.test(last))
-    return Response.json({ error: 'invalid_last_name', message: 'Please enter a valid last name.' }, { status: 400 });
-  if (!email)
-    return Response.json({ error: 'missing_email', message: 'Email is required.' }, { status: 400 });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
-    return Response.json({ error: 'invalid_email', message: 'Please enter a valid email address.' }, { status: 400 });
-  if (!mobile)
-    return Response.json({ error: 'missing_mobile', message: 'Mobile number is required.' }, { status: 400 });
-  const mobileDigits = mobile.replace(/\D/g, '');
-  if (mobileDigits.length !== 10)
-    return Response.json({ error: 'invalid_mobile', message: 'Please enter a valid 10-digit mobile number.' }, { status: 400 });
-  const normalizedMobile = mobileDigits;
-  if (zip && !/^\d{5}(-\d{4})?$/.test(zip))
-    return Response.json({ error: 'invalid_zip', message: 'Please enter a valid 5-digit ZIP code or ZIP+4.' }, { status: 400 });
+  if (!first || !last || !email)
+    return Response.json({ error: 'missing_fields', message: 'First name, last name and email are required.' }, { status: 400 });
 
   // Load each tier + event, validate + capacity + total.
   const tierMap = {};
@@ -88,7 +68,7 @@ export async function POST(req) {
   const orderCode = humanCode();
   try {
     await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, code, amount_cents, braintree_txn_id, status)
-              values (${orderId}, ${eventId}, ${name}, ${email}, ${normalizedMobile}, ${country}, ${zip}, ${orderCode}, ${amountCents}, ${txnId}, 'paid')`;
+              values (${orderId}, ${eventId}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${orderCode}, ${amountCents}, ${txnId}, 'paid')`;
   } catch (e) {
     console.error('order insert failed:', e);
     return Response.json({ error: 'server_error', message: 'Payment captured but order save failed' + (txnId ? ` (txn ${txnId})` : '') }, { status: 500 });
