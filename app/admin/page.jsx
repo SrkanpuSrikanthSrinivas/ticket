@@ -183,11 +183,11 @@ function EventModal({ pin, event, onClose, onSaved }) {
           placeholder="Schedule, address, parking, what to bring…"
           style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} /></div>
       <div><label className="f">Event flyer image URL</label>
-        <input value={f.flyer_url} onChange={(e) => set('flyer_url', e.target.value)} placeholder="https://…/flyer.jpg" />
+        <input value={f.flyer_url} onChange={(e) => setF({ ...f, flyer_url: e.target.value })} placeholder="https://…/flyer.jpg" />
         <div className="hint" style={{ margin: '6px 0 0' }}>Paste a link to the flyer image (host it on your site or an image host). It shows at the top of the registration page.</div>
         {f.flyer_url ? <img src={f.flyer_url} alt="Flyer preview" style={{ marginTop: 10, width: '100%', borderRadius: 12, border: '1px solid var(--line)' }} /> : null}</div>
       <div><label className="f">Pricing schedule (shown to members)</label>
-        <textarea rows={5} value={f.pricing_note} onChange={(e) => set('pricing_note', e.target.value)}
+        <textarea rows={5} value={f.pricing_note} onChange={(e) => setF({ ...f, pricing_note: e.target.value })}
           placeholder={"First week: $15 adult, $10 child, groups of 10+ at $10 each\nNext 2 weeks: full price\nLast week: $20"}
           style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} />
         <div className="hint" style={{ margin: '6px 0 0' }}>Displayed as a highlighted notice on the registration page. (This is a message to buyers — it doesn't change prices automatically.)</div></div>
