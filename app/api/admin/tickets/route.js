@@ -14,7 +14,7 @@ export async function POST(req) {
   if (b.adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized', message: 'Wrong admin PIN.' }, { status: 401 });
   if (!b.name || !b.name.trim()) return Response.json({ error: 'name_required', message: 'Ticket needs a name.' }, { status: 400 });
 
-  const evRow = (await sql`select id from events order by created_at desc limit 1`)[0];
+  const evRow = (await sql`select id from events order by created_at desc, id desc limit 1`)[0];
   if (!evRow) return Response.json({ error: 'no_event', message: 'Create the event details first.' }, { status: 400 });
   const ev = evRow.id;
 
@@ -35,7 +35,7 @@ export async function POST(req) {
     if (b.id) {
       const r = await sql`update ticket_types set name=${name}, description=${description}, price_cents=${priceCents},
                           admits=${admits}, max_qty=${maxQty}, is_comp=${isComp}, active=${active}, sort=${sort}, category=${category}
-                          where id=${ttId} and event_id=${ev} returning id`;
+                          where id=${ttId} returning id`;
       affected = r.length; // 0 means the id wasn't found under the current event
     } else {
       await sql`insert into ticket_types (id, event_id, name, description, price_cents, admits, max_qty, is_comp, active, sort, category)
@@ -47,7 +47,7 @@ export async function POST(req) {
       if (n > 0) await sql`insert into ticket_coupon_allotments (ticket_type_id, coupon_type_id, qty_per_guest) values (${ttId}, ${cid}, ${n})`;
     }
     if (b.id && affected === 0)
-      return Response.json({ error: 'not_found', message: 'That ticket belongs to a different event — the edit did not match any row. (Do you have more than one event?)' }, { status: 409 });
+      return Response.json({ error: 'not_found', message: 'That ticket no longer exists.' }, { status: 409 });
     return Response.json({ ok: true, id: ttId }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('ticket save failed:', e);

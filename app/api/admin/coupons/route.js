@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { sql } from '../../../../lib/db';
 
 async function eventId() {
-  return (await sql`select id from events order by created_at desc limit 1`)[0]?.id;
+  return (await sql`select id from events order by created_at desc, id desc limit 1`)[0]?.id;
 }
 
 // Create or update a food-coupon denomination (name + dollar value).

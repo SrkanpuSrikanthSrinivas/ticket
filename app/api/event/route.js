@@ -9,7 +9,7 @@ import { ensureSchema } from '../../../lib/ensureSchema';
 export async function GET() {
   await ensureSchema();
   const ev = (await sql`select id, name, event_date, venue, tagline, details
-                        from events order by created_at desc limit 1`)[0];
+                        from events order by created_at desc, id desc limit 1`)[0];
   if (!ev) return Response.json({ error: 'no_event' }, { status: 404 });
 
   const tiers = await sql`

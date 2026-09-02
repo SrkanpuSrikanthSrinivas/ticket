@@ -16,7 +16,7 @@ export async function POST(req) {
   if (provider === 'none') { out.result = 'FAIL — no email provider configured. Set RESEND_API_KEY (easiest) in Vercel and redeploy.'; return Response.json(out); }
   if (!to) { out.result = 'Enter an email address to send a test.'; return Response.json(out); }
 
-  const ev = (await sql`select name, event_date, venue, email_subject, email_body from events order by created_at desc limit 1`)[0] || {};
+  const ev = (await sql`select name, event_date, venue, email_subject, email_body from events order by created_at desc, id desc limit 1`)[0] || {};
   const event = { name: ev.name || 'Event', event_date: ev.event_date, venue: ev.venue, email_subject: subject || ev.email_subject, email_body: body || ev.email_body };
 
   const r = await sendTicketEmail({ to, buyerName: 'Test Guest', event, tickets: [{ typeName: 'Adult', code: 'TIX-TEST', token: 'test.token', qty: 1 }], baseUrl: new URL(req.url).origin });
