@@ -158,14 +158,14 @@ function Sheet({ title, onClose, children, footer }) {
 }
 
 function EventModal({ pin, event, onClose, onSaved }) {
-  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', venue: event?.venue || '', tagline: event?.tagline || '', details: event?.details || '', flyer_url: event?.flyer_url || '', pricing_note: event?.pricing_note || '', pricing_deadline: event?.pricing_deadline || '' });
+  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', start_time: event?.start_time || '', end_time: event?.end_time || '', venue: event?.venue || '', tagline: event?.tagline || '', details: event?.details || '', flyer_url: event?.flyer_url || '', pricing_note: event?.pricing_note || '', pricing_deadline: event?.pricing_deadline || '', food_note: event?.food_note || '' });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const save = async () => {
     if (!f.name.trim()) return setErr('Event name is required.');
     setBusy(true);
     const { ok, data } = await post('/api/admin/event', { adminPin: pin, ...f });
     setBusy(false);
-    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, venue: f.venue, tagline: f.tagline, details: f.details, flyer_url: f.flyer_url, pricing_note: f.pricing_note, pricing_deadline: f.pricing_deadline });
+    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, start_time: f.start_time, end_time: f.end_time, venue: f.venue, tagline: f.tagline, details: f.details, flyer_url: f.flyer_url, pricing_note: f.pricing_note, pricing_deadline: f.pricing_deadline, food_note: f.food_note });
     else setErr(data.message || 'Save failed.');
   };
   return (
@@ -176,6 +176,10 @@ function EventModal({ pin, event, onClose, onSaved }) {
       <div className="row">
         <div className="grow"><label className="f">Date</label><input value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} placeholder="Sat, Jun 20 · 5 PM" /></div>
         <div className="grow"><label className="f">Venue</label><input value={f.venue} onChange={(e) => setF({ ...f, venue: e.target.value })} placeholder="Community Hall" /></div>
+      </div>
+      <div className="row">
+        <div className="grow"><label className="f">Start time</label><input value={f.start_time} onChange={(e) => setF({ ...f, start_time: e.target.value })} placeholder="10:00 AM" /></div>
+        <div className="grow"><label className="f">End time</label><input value={f.end_time} onChange={(e) => setF({ ...f, end_time: e.target.value })} placeholder="6:00 PM" /></div>
       </div>
       <div><label className="f">Welcome line (short)</label><input value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} /></div>
       <div><label className="f">Event details (shown on the registration page)</label>
@@ -195,6 +199,11 @@ function EventModal({ pin, event, onClose, onSaved }) {
           placeholder={"First week: $15 adult, $10 child, groups of 10+ at $10 each\nNext 2 weeks: full price\nLast week: $20"}
           style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} />
         <div className="hint" style={{ margin: '6px 0 0' }}>Displayed as a highlighted notice on the registration page. (This is a message to buyers — it doesn't change prices automatically.)</div></div>
+      <div><label className="f">Food coupon guide (menu & approx. prices)</label>
+        <textarea rows={6} value={f.food_note} onChange={(e) => setF({ ...f, food_note: e.target.value })}
+          placeholder={"1 plate pani puri — approx $6\nTomato slice — approx $6\nMango lassi — approx $4\nChapati curry — approx $6\n***Prices are approximate and may vary by vendor"}
+          style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} />
+        <div className="hint" style={{ margin: '6px 0 0' }}>Shown to buyers so they know how food coupons can be used.</div></div>
       {err && <div className="err">{err}</div>}
     </Sheet>
   );

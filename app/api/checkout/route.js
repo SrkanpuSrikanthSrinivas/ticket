@@ -91,7 +91,7 @@ export async function POST(req) {
     // The order is already saved; email must never hang the buyer. Cap it at 5s.
     const emailPromise = sendTicketEmail({
       to: email, buyerName: name,
-      event: { name: ev0.event_name, event_date: ev0.event_date, venue: ev0.venue, details: ev0.event_details, email_subject: ev0.email_subject, email_body: ev0.email_body },
+      event: { name: ev0.event_name, event_date: ev0.event_date, start_time: ev0.event_start, end_time: ev0.event_end, venue: ev0.venue, details: ev0.event_details, email_subject: ev0.email_subject, email_body: ev0.email_body },
       token: orderToken, code: orderCode, items: tickets, baseUrl,
     });
     const timeout = new Promise((res) => setTimeout(() => res({ ok: false, reason: 'email_timeout' }), 5000));

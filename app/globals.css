@@ -188,3 +188,21 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .pricebanner .pb-h{font-family:"Bricolage Grotesque";font-weight:800;color:var(--marigold-ink);font-size:14px;letter-spacing:.02em;margin-bottom:6px}
 .pricebanner .pb-b{color:#5c4a1e;font-size:14.5px;line-height:1.6;white-space:pre-line}
 .pricebanner .pb-deadline{display:block;background:#C62828;color:#fff;font-weight:800;font-size:13.5px;line-height:1.4;padding:8px 12px;border-radius:10px;margin-bottom:12px}
+
+/* --- festive buyer background (Janapada Jaatre) --- */
+body.buyer-festive{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(240,165,0,.20), transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(27,153,139,.16), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(59,30,84,.14), transparent 48%),
+    linear-gradient(180deg,#FFF9EF,#FBEFDD) fixed;
+}
+body.buyer-festive::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(rgba(198,40,40,.08) 1.5px, transparent 1.7px);
+  background-size:22px 22px;
+}
+/* --- food coupon guide card --- */
+.foodguide{background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.foodguide .fg-h{font-family:"Bricolage Grotesque";font-weight:800;color:var(--teal);font-size:15px;margin-bottom:8px}
+.foodguide .fg-b{color:#3a3340;font-size:14.5px;line-height:1.7;white-space:pre-line}

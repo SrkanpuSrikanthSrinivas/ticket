@@ -62,6 +62,11 @@ export default function Buy() {
   const [payAttempt, setPayAttempt] = useState(0);
 
   useEffect(() => {
+    document.body.classList.add('buyer-festive');
+    return () => document.body.classList.remove('buyer-festive');
+  }, []);
+
+  useEffect(() => {
     fetch('/api/event', { cache: 'no-store' }).then((r) => r.json())
       .then((d) => d.error ? setErr('No event is open for sales yet.') : setEv(d))
       .catch(() => setErr('Could not load the event.'));
@@ -229,7 +234,7 @@ export default function Buy() {
       {ev.flyer_url ? <img className="flyer" src={ev.flyer_url} alt={`${ev.name} flyer`} /> : null}
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ fontSize: 22, color: 'var(--plum)' }}>{ev.name}</h2>
-        {(ev.date || ev.venue) && <div className="hint" style={{ marginTop: 4 }}>{[ev.date, ev.venue].filter(Boolean).join(' · ')}</div>}
+        {(ev.date || ev.start_time || ev.venue) && <div className="hint" style={{ marginTop: 4 }}>{[[ev.date, [ev.start_time, ev.end_time].filter(Boolean).join('–')].filter(Boolean).join(', '), ev.venue].filter(Boolean).join(' · ')}</div>}
         {ev.tagline && <p style={{ margin: '10px 0 0', color: '#443c50' }}>{ev.tagline}</p>}
         {ev.details && <p style={{ margin: '10px 0 0', color: 'var(--muted)', whiteSpace: 'pre-line', lineHeight: 1.55 }}>{ev.details}</p>}
       </div>
