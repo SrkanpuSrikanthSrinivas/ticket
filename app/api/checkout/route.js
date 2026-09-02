@@ -11,8 +11,11 @@ import { sendTicketEmail } from '../../../lib/email';
 //
 // PCI: never sees card data — Braintree Drop-in tokenizes on the buyer's device and
 // returns a one-time nonce; we store only the transaction id. (PCI SAQ A.)
+const withTimeout = (promise, ms, fallback) =>
+  Promise.race([Promise.resolve(promise), new Promise((r) => setTimeout(() => r(fallback), ms))]);
+
 export async function POST(req) {
-  await ensureSchema();
+  await withTimeout(ensureSchema(), 4000, null); // never let the schema check stall checkout
   const body = await req.json().catch(() => null);
   if (!body) return Response.json({ error: 'bad_request' }, { status: 400 });
 
@@ -54,7 +57,9 @@ export async function POST(req) {
   let txnId = null;
   if (amountCents > 0) {
     if (!paymentMethodNonce) return Response.json({ error: 'payment_required' }, { status: 400 });
-    const result = await gateway.transaction.sale({ amount: (amountCents / 100).toFixed(2), paymentMethodNonce, options: { submitForSettlement: true } });
+    const result = await withTimeout(
+      gateway.transaction.sale({ amount: (amountCents / 100).toFixed(2), paymentMethodNonce, options: { submitForSettlement: true } }),
+      20000, { success: false, message: 'Payment timed out. Please try again.' });
     if (!result.success) return Response.json({ error: 'payment_declined', message: result.message }, { status: 402 });
     txnId = result.transaction.id;
   }
