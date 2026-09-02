@@ -8,10 +8,16 @@ function loadScript(src) {
   });
 }
 const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
+const onlyDigits = (v, max) => v.replace(/\D/g, '').slice(0, max);          // numbers only
+const onlyName = (v) => v.replace(/[^\p{L}\s'.\-]/gu, '').slice(0, 40);    // letters/space/'-.
+const noSpaces = (v) => v.replace(/\s+/g, '').slice(0, 120);                 // email: no spaces
 
 function TierSection({ title, icon, tiers, cart, setQty, note }) {
   if (!tiers || tiers.length === 0) return null;
   const money = (c) => `$${((c || 0) / 100).toFixed(2)}`;
+const onlyDigits = (v, max) => v.replace(/\D/g, '').slice(0, max);          // numbers only
+const onlyName = (v) => v.replace(/[^\p{L}\s'.\-]/gu, '').slice(0, 40);    // letters/space/'-.
+const noSpaces = (v) => v.replace(/\s+/g, '').slice(0, 120);                 // email: no spaces
   return (
     <div style={{ marginTop: 18 }}>
       <div className="sechead"><span className="sec-ic">{icon}</span><span>{title}</span></div>
@@ -77,10 +83,10 @@ export default function Buy() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return 'Please enter a valid email address.';
     const digits = buyer.mobile.replace(/\D/g, '');
     if (!buyer.mobile.trim()) return 'Mobile number is required.';
-    if (digits.length < 10 || digits.length > 15) return 'Please enter a valid mobile number (10–15 digits).';
+    if (digits.length !== 10) return 'Mobile number must be exactly 10 digits.';
     if (buyer.mobile.replace(/\D/g, '') !== buyer.mobile2.replace(/\D/g, '')) return 'Mobile numbers do not match. Please re-enter to confirm.';
     const zip = buyer.zip.trim();
-    if (zip && !/^[A-Za-z0-9][A-Za-z0-9 -]{2,9}$/.test(zip)) return 'Please enter a valid zip / postal code.';
+    if (zip && !/^\d{5}$/.test(zip)) return 'Zip code must be 5 digits.';
     return '';
   }
 
@@ -256,18 +262,18 @@ export default function Buy() {
           </div>
           <div className="divider" />
           <div className="row">
-            <div className="grow"><label className="f">First name *</label><input value={buyer.first} onChange={(e) => setBuyer({ ...buyer, first: e.target.value })} placeholder="Jane" /></div>
-            <div className="grow"><label className="f">Last name *</label><input value={buyer.last} onChange={(e) => setBuyer({ ...buyer, last: e.target.value })} placeholder="Rao" /></div>
+            <div className="grow"><label className="f">First name *</label><input value={buyer.first} onChange={(e) => setBuyer({ ...buyer, first: onlyName(e.target.value) })} placeholder="Jane" /></div>
+            <div className="grow"><label className="f">Last name *</label><input value={buyer.last} onChange={(e) => setBuyer({ ...buyer, last: onlyName(e.target.value) })} placeholder="Rao" /></div>
           </div>
-          <div><label className="f">Email Id *</label><input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" /></div>
+          <div><label className="f">Email Id *</label><input type="email" inputMode="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: noSpaces(e.target.value) })} onBlur={(e) => setBuyer({ ...buyer, email: e.target.value.trim().toLowerCase() })} placeholder="jane@email.com" /></div>
           <div className="row">
-            <div className="grow"><label className="f">Mobile number *</label><input type="tel" inputMode="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: e.target.value })} placeholder="(469) …" /></div>
-            <div style={{ width: 130 }}><label className="f">Zip code</label><input inputMode="numeric" value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" /></div>
+            <div className="grow"><label className="f">Mobile number *</label><input type="tel" inputMode="numeric" maxLength={10} value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: onlyDigits(e.target.value, 10) })} placeholder="10-digit mobile" /></div>
+            <div style={{ width: 130 }}><label className="f">Zip code</label><input inputMode="numeric" maxLength={5} value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: onlyDigits(e.target.value, 5) })} placeholder="75070" /></div>
           </div>
           <div><label className="f">Confirm mobile number *</label>
-            <input type="tel" inputMode="tel" value={buyer.mobile2}
-              onChange={(e) => setBuyer({ ...buyer, mobile2: e.target.value })}
-              onPaste={(e) => e.preventDefault()} placeholder="Re-enter mobile number" />
+            <input type="tel" inputMode="numeric" maxLength={10} value={buyer.mobile2}
+              onChange={(e) => setBuyer({ ...buyer, mobile2: onlyDigits(e.target.value, 10) })}
+              onPaste={(e) => e.preventDefault()} placeholder="Re-enter 10-digit mobile" />
             {buyer.mobile2 && buyer.mobile.replace(/\D/g, '') !== buyer.mobile2.replace(/\D/g, '') && <div className="hint" style={{ color: '#C62828', marginTop: 4 }}>Numbers don't match yet.</div>}
           </div>
           {err && <div className="err">{err}</div>}
