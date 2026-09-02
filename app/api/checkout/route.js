@@ -83,11 +83,14 @@ export async function POST(req) {
   const baseUrl = new URL(req.url).origin;
   let emailRes = { ok: false };
   try {
-    emailRes = await sendTicketEmail({
+    // The order is already saved; email must never hang the buyer. Cap it at 5s.
+    const emailPromise = sendTicketEmail({
       to: email, buyerName: name,
       event: { name: ev0.event_name, event_date: ev0.event_date, venue: ev0.venue, details: ev0.event_details, email_subject: ev0.email_subject, email_body: ev0.email_body },
       token: orderToken, code: orderCode, items: tickets, baseUrl,
     });
+    const timeout = new Promise((res) => setTimeout(() => res({ ok: false, reason: 'email_timeout' }), 5000));
+    emailRes = await Promise.race([emailPromise, timeout]);
   } catch (e) { emailRes = { ok: false, error: String(e?.message || e) }; }
   if (!emailRes.ok) console.error('order email not sent:', emailRes.status, emailRes.body || emailRes.error);
 
