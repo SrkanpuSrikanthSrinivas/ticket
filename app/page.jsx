@@ -67,7 +67,7 @@ export default function Buy() {
   const amountCents = lineItems.reduce((s, t) => s + (t.is_comp ? 0 : t.price_cents * t.qty), 0);
 
   function formatMobile(value) {
-    const digits = value.replace(/\D/g, '').slice(0, 10);
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 10);
     if (digits.length <= 3) return digits;
     if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
@@ -79,7 +79,7 @@ export default function Buy() {
     const first = buyer.first.trim();
     const last = buyer.last.trim();
     const email = buyer.email.trim();
-    const mobile = buyer.mobile.trim();
+    const mobileDigits = buyer.mobile.replace(/\D/g, '');
     const zip = buyer.zip.trim();
 
     if (!first) return 'First name is required.';
@@ -88,24 +88,32 @@ export default function Buy() {
     if (!last) return 'Last name is required.';
     if (!/^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$/.test(last))
       return 'Please enter a valid last name.';
-    if (!email) return 'Email is required.';
+    if (!email) return 'Email Id is required.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
       return 'Please enter a valid email address.';
-    if (!mobile) return 'Mobile number is required.';
-
-    const mobileDigits = mobile.replace(/\D/g, '');
     if (mobileDigits.length !== 10)
       return 'Please enter a valid 10-digit mobile number.';
-
-    // Zip is optional, but if supplied it must be a valid US ZIP or ZIP+4.
     if (zip && !/^\d{5}(-\d{4})?$/.test(zip))
       return 'Please enter a valid 5-digit ZIP code or ZIP+4.';
 
     return '';
   }
 
-  async function goPay() {
-    const v = validateBuyer(); if (v) return setErr(v);
+  function updateBuyer(field, value) {
+    setBuyer((current) => ({ ...current, [field]: value }));
+    setErr('');
+  }
+
+  async function goPay(e) {
+    e?.preventDefault?.();
+    if (busy) return;
+
+    const v = validateBuyer();
+    if (v) {
+      setErr(v);
+      return;
+    }
+
     setErr('');
     if (amountCents === 0) return submit(null);
     setStage('pay'); setBusy(true);
@@ -241,16 +249,16 @@ export default function Buy() {
           </div>
           <div className="divider" />
           <div className="row">
-            <div className="grow"><label className="f">First name *</label><input value={buyer.first} onChange={(e) => setBuyer({ ...buyer, first: e.target.value })} placeholder="Jane" maxLength={50} autoComplete="given-name" /></div>
-            <div className="grow"><label className="f">Last name *</label><input value={buyer.last} onChange={(e) => setBuyer({ ...buyer, last: e.target.value })} placeholder="Rao" maxLength={50} autoComplete="family-name" /></div>
+            <div className="grow"><label className="f">First name *</label><input value={buyer.first} onChange={(e) => updateBuyer('first', e.target.value)} placeholder="Jane" maxLength={50} autoComplete="given-name" /></div>
+            <div className="grow"><label className="f">Last name *</label><input value={buyer.last} onChange={(e) => updateBuyer('last', e.target.value)} placeholder="Rao" maxLength={50} autoComplete="family-name" /></div>
           </div>
-          <div><label className="f">Email Id *</label><input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" maxLength={254} autoComplete="email" /></div>
+          <div><label className="f">Email Id *</label><input type="email" value={buyer.email} onChange={(e) => updateBuyer('email', e.target.value)} placeholder="jane@email.com" maxLength={254} autoComplete="email" /></div>
           <div className="row">
-            <div className="grow"><label className="f">Mobile number *</label><input type="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: formatMobile(e.target.value) })} placeholder="(469) 123-4567" maxLength={14} autoComplete="tel" inputMode="tel" /></div>
-            <div style={{ width: 130 }}><label className="f">Zip code</label><input value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" maxLength={10} autoComplete="postal-code" inputMode="numeric" /></div>
+            <div className="grow"><label className="f">Mobile number *</label><input type="tel" value={buyer.mobile} onChange={(e) => updateBuyer('mobile', formatMobile(e.target.value))} placeholder="(469) 123-4567" maxLength={14} autoComplete="tel" inputMode="tel" /></div>
+            <div style={{ width: 130 }}><label className="f">Zip code</label><input value={buyer.zip} onChange={(e) => updateBuyer('zip', e.target.value.replace(/[^0-9-]/g, '').slice(0, 10))} placeholder="75070" maxLength={10} autoComplete="postal-code" inputMode="numeric" /></div>
           </div>
           {err && <div className="err">{err}</div>}
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
+          <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
             {amountCents ? `Continue to payment · ${money(amountCents)}` : 'Get tickets'}
           </button>
         </div>
