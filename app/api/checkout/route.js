@@ -48,9 +48,10 @@ export async function POST(req) {
     return Response.json({ error: 'invalid_email', message: 'Please enter a valid email address.' }, { status: 400 });
   if (!mobile)
     return Response.json({ error: 'missing_mobile', message: 'Mobile number is required.' }, { status: 400 });
-  const mobileDigits = mobile.replace(/\\D/g, '');
+  const mobileDigits = mobile.replace(/\D/g, '');
   if (mobileDigits.length !== 10)
     return Response.json({ error: 'invalid_mobile', message: 'Please enter a valid 10-digit mobile number.' }, { status: 400 });
+  const normalizedMobile = mobileDigits;
   if (zip && !/^\\d{5}(-\\d{4})?$/.test(zip))
     return Response.json({ error: 'invalid_zip', message: 'Please enter a valid 5-digit ZIP code or ZIP+4.' }, { status: 400 });
 
@@ -87,7 +88,7 @@ export async function POST(req) {
   const orderCode = humanCode();
   try {
     await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, code, amount_cents, braintree_txn_id, status)
-              values (${orderId}, ${eventId}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${orderCode}, ${amountCents}, ${txnId}, 'paid')`;
+              values (${orderId}, ${eventId}, ${name}, ${email}, ${normalizedMobile}, ${country}, ${zip}, ${orderCode}, ${amountCents}, ${txnId}, 'paid')`;
   } catch (e) {
     console.error('order insert failed:', e);
     return Response.json({ error: 'server_error', message: 'Payment captured but order save failed' + (txnId ? ` (txn ${txnId})` : '') }, { status: 500 });

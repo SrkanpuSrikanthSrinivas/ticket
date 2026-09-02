@@ -66,6 +66,13 @@ export default function Buy() {
   const itemCount = lineItems.reduce((s, t) => s + t.qty, 0);
   const amountCents = lineItems.reduce((s, t) => s + (t.is_comp ? 0 : t.price_cents * t.qty), 0);
 
+  function formatMobile(value) {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
   function validateBuyer() {
     if (!itemCount) return 'Select at least one ticket.';
 
@@ -82,16 +89,16 @@ export default function Buy() {
     if (!/^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$/.test(last))
       return 'Please enter a valid last name.';
     if (!email) return 'Email is required.';
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email))
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
       return 'Please enter a valid email address.';
     if (!mobile) return 'Mobile number is required.';
 
-    const mobileDigits = mobile.replace(/\\D/g, '');
+    const mobileDigits = mobile.replace(/\D/g, '');
     if (mobileDigits.length !== 10)
       return 'Please enter a valid 10-digit mobile number.';
 
     // Zip is optional, but if supplied it must be a valid US ZIP or ZIP+4.
-    if (zip && !/^\\d{5}(-\\d{4})?$/.test(zip))
+    if (zip && !/^\d{5}(-\d{4})?$/.test(zip))
       return 'Please enter a valid 5-digit ZIP code or ZIP+4.';
 
     return '';
@@ -239,7 +246,7 @@ export default function Buy() {
           </div>
           <div><label className="f">Email Id *</label><input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" maxLength={254} autoComplete="email" /></div>
           <div className="row">
-            <div className="grow"><label className="f">Mobile number *</label><input type="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: e.target.value })} placeholder="(469) …" maxLength={14} autoComplete="tel" inputMode="tel" /></div>
+            <div className="grow"><label className="f">Mobile number *</label><input type="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: formatMobile(e.target.value) })} placeholder="(469) 123-4567" maxLength={14} autoComplete="tel" inputMode="tel" /></div>
             <div style={{ width: 130 }}><label className="f">Zip code</label><input value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" maxLength={10} autoComplete="postal-code" inputMode="numeric" /></div>
           </div>
           {err && <div className="err">{err}</div>}
