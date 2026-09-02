@@ -158,14 +158,14 @@ function Sheet({ title, onClose, children, footer }) {
 }
 
 function EventModal({ pin, event, onClose, onSaved }) {
-  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', venue: event?.venue || '', tagline: event?.tagline || '', details: event?.details || '', flyer_url: event?.flyer_url || '', pricing_note: event?.pricing_note || '' });
+  const [f, setF] = useState({ name: event?.name || '', date: event?.event_date || '', venue: event?.venue || '', tagline: event?.tagline || '', details: event?.details || '', flyer_url: event?.flyer_url || '', pricing_note: event?.pricing_note || '', pricing_deadline: event?.pricing_deadline || '' });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const save = async () => {
     if (!f.name.trim()) return setErr('Event name is required.');
     setBusy(true);
     const { ok, data } = await post('/api/admin/event', { adminPin: pin, ...f });
     setBusy(false);
-    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, venue: f.venue, tagline: f.tagline, details: f.details, flyer_url: f.flyer_url, pricing_note: f.pricing_note });
+    if (ok) onSaved({ name: f.name.trim(), event_date: f.date, venue: f.venue, tagline: f.tagline, details: f.details, flyer_url: f.flyer_url, pricing_note: f.pricing_note, pricing_deadline: f.pricing_deadline });
     else setErr(data.message || 'Save failed.');
   };
   return (
@@ -186,6 +186,10 @@ function EventModal({ pin, event, onClose, onSaved }) {
         <input value={f.flyer_url} onChange={(e) => setF({ ...f, flyer_url: e.target.value })} placeholder="https://…/flyer.jpg" />
         <div className="hint" style={{ margin: '6px 0 0' }}>Paste a link to the flyer image (host it on your site or an image host). It shows at the top of the registration page.</div>
         {f.flyer_url ? <img src={f.flyer_url} alt="Flyer preview" style={{ marginTop: 10, width: '100%', borderRadius: 12, border: '1px solid var(--line)' }} /> : null}</div>
+      <div><label className="f">Deadline highlight (urgent line, optional)</label>
+        <input value={f.pricing_deadline} onChange={(e) => setF({ ...f, pricing_deadline: e.target.value })}
+          placeholder="e.g. Group discount (10+) ends Mar 15 — after that, regular price" />
+        <div className="hint" style={{ margin: '6px 0 0' }}>Shown as a bold, highlighted line above the pricing schedule.</div></div>
       <div><label className="f">Pricing schedule (shown to members)</label>
         <textarea rows={5} value={f.pricing_note} onChange={(e) => setF({ ...f, pricing_note: e.target.value })}
           placeholder={"First week: $15 adult, $10 child, groups of 10+ at $10 each\nNext 2 weeks: full price\nLast week: $20"}

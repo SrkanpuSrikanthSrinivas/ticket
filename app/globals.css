@@ -187,3 +187,4 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .pricebanner{background:linear-gradient(135deg,#FFF6E6,#FDEFC9);border:1px solid #F0D89A;border-radius:16px;padding:16px 18px;margin-bottom:16px}
 .pricebanner .pb-h{font-family:"Bricolage Grotesque";font-weight:800;color:var(--marigold-ink);font-size:14px;letter-spacing:.02em;margin-bottom:6px}
 .pricebanner .pb-b{color:#5c4a1e;font-size:14.5px;line-height:1.6;white-space:pre-line}
+.pricebanner .pb-deadline{display:block;background:#C62828;color:#fff;font-weight:800;font-size:13.5px;line-height:1.4;padding:8px 12px;border-radius:10px;margin-bottom:12px}

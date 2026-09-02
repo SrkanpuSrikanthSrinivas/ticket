@@ -10,6 +10,7 @@ create table if not exists events (
   details text,
   flyer_url text,
   pricing_note text,
+  pricing_deadline text,
   email_subject text,
   email_body text,
   created_at timestamptz default now()

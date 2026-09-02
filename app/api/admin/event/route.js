@@ -5,7 +5,7 @@ import { sql, ensureSchema } from '../../../../lib/db';
 // Admin: create or update the event details.
 export async function POST(req) {
   await ensureSchema();
-  const { adminPin, name, date, venue, tagline, details, flyer_url, pricing_note } = await req.json().catch(() => ({}));
+  const { adminPin, name, date, venue, tagline, details, flyer_url, pricing_note, pricing_deadline } = await req.json().catch(() => ({}));
   if (adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   if (!name) return Response.json({ error: 'name_required' }, { status: 400 });
 
@@ -14,11 +14,11 @@ export async function POST(req) {
   if (existing) {
     row = (await sql`update events set name=${name}, event_date=${date || null}, venue=${venue || null},
                      tagline=${tagline || null}, details=${details || null},
-                     flyer_url=${flyer_url || null}, pricing_note=${pricing_note || null}
+                     flyer_url=${flyer_url || null}, pricing_note=${pricing_note || null}, pricing_deadline=${pricing_deadline || null}
                      where id=${existing.id} returning id`)[0];
   } else {
-    row = (await sql`insert into events (name, event_date, venue, tagline, details, flyer_url, pricing_note)
-                     values (${name}, ${date || null}, ${venue || null}, ${tagline || null}, ${details || null}, ${flyer_url || null}, ${pricing_note || null})
+    row = (await sql`insert into events (name, event_date, venue, tagline, details, flyer_url, pricing_note, pricing_deadline)
+                     values (${name}, ${date || null}, ${venue || null}, ${tagline || null}, ${details || null}, ${flyer_url || null}, ${pricing_note || null}, ${pricing_deadline || null})
                      returning id`)[0];
   }
   return Response.json({ ok: true, id: row.id });

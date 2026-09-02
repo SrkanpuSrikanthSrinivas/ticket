@@ -182,10 +182,10 @@ export default function Buy() {
         {ev.tagline && <p style={{ margin: '10px 0 0', color: '#443c50' }}>{ev.tagline}</p>}
         {ev.details && <p style={{ margin: '10px 0 0', color: 'var(--muted)', whiteSpace: 'pre-line', lineHeight: 1.55 }}>{ev.details}</p>}
       </div>
-      {ev.pricing_note ? (
+      {(ev.pricing_note || ev.pricing_deadline) ? (
         <div className="pricebanner">
-          <div className="pb-h">💡 Pricing</div>
-          <div className="pb-b">{ev.pricing_note}</div>
+          {ev.pricing_deadline ? <div className="pb-deadline">⏰ {ev.pricing_deadline}</div> : null}
+          {ev.pricing_note ? <><div className="pb-h">💡 Pricing</div><div className="pb-b">{ev.pricing_note}</div></> : null}
         </div>
       ) : null}
 
