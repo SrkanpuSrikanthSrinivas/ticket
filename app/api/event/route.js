@@ -8,7 +8,7 @@ import { ensureSchema } from '../../../lib/ensureSchema';
 // The embedded buyer flow renders from this.
 export async function GET() {
   await ensureSchema();
-  const ev = (await sql`select id, name, event_date, venue, tagline, details
+  const ev = (await sql`select id, name, event_date, venue, tagline, details, flyer_url, pricing_note
                         from events order by created_at desc, id desc limit 1`)[0];
   if (!ev) return Response.json({ error: 'no_event' }, { status: 404 });
 
@@ -27,5 +27,5 @@ export async function GET() {
     soldOut: t.max_qty != null && t.sold >= t.max_qty,
   }));
 
-  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, details: ev.details, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, details: ev.details, flyer_url: ev.flyer_url, pricing_note: ev.pricing_note, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
 }

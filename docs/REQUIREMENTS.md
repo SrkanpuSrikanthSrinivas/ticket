@@ -71,7 +71,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 
 ## 5. Data model
 
-- **events** — name, event_date, venue, tagline, **details** (shown on registration page), email_subject, email_body.
+- **events** — name, event_date, venue, tagline, **details**, **flyer_url** (flyer image on registration page), **pricing_note** (pricing schedule notice), email_subject, email_body.
 - **ticket_types** — name, description, price_cents, **admits** (headcount per unit), max_qty (capacity), is_comp (free), active, sort, **category** (`entry` | `food`).
 - **coupon_types** — name, **value_cents** (denomination, e.g. $2/$5/$8/$10), sort.
 - **ticket_coupon_allotments** — ticket_type → coupon_type, qty_per_guest.
@@ -93,6 +93,8 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 - **BUY‑8** `[ ]` *(idea)* Discount / promo codes.
 - **BUY‑9** `[x]` **Cart ticket table** — the cart card shows a small table of selected types (type × qty × subtotal) before the total. *(R‑NEW‑1)*
 - **BUY‑10** `[x]` The **ticket table (type × qty)** appears consistently in cart, confirmation, email, gate scan card, and stall. *(R‑NEW‑4)*
+- **BUY‑12** `[x]` **Event flyer** — admin can set a flyer image URL; it displays at the top of the registration page. *(R‑NEW‑7)*
+- **BUY‑13** `[x]` **Pricing schedule notice** — admin can enter a pricing‑phases message (early‑bird / full / late, group discounts); shown as a highlighted banner on the registration page. *Display only — does not auto‑change prices.* *(R‑NEW‑8)*
 - **BUY‑11** `[x]` The **Event Entry** / **Food Coupons** split is applied **everywhere**: purchase screen, cart, confirmation, email, gate check‑in card, stall, **admin ticket list**, and **report**. Driven by each ticket type's `category`. *(R‑NEW‑5, R‑NEW‑6)*
 
 ---
@@ -102,6 +104,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 - **PAY‑1** `[x]` Braintree sale for the cart total; store `braintree_txn_id`.
 - **PAY‑2** `[x]` Capacity check per ticket type before charging (blocks oversell).
 - **PAY‑3** `[ ]` Enable **3‑D Secure** at checkout (currently a direct charge).
+- **PAY‑5** `[ ]` *(next)* **Time‑based dynamic pricing** — auto‑apply early‑bird / full / late prices per ticket type by date, and a **group discount** (e.g. 10+ at a set rate). Currently the schedule is shown to members (BUY‑13) but prices are set manually.
 - **PAY‑4** `[~]` Graceful handling if payment succeeds but DB save fails (currently returns an error noting the txn id; no auto‑refund/repair).
 
 ---
@@ -156,7 +159,7 @@ Supporting APIs: `/api/event`, `/api/client-token`, `/api/checkout`, `/api/looku
 ## 12. Admin console (`/admin`)
 
 - **ADM‑1** `[x]` Sign in with `ADMIN_PIN`.
-- **ADM‑2** `[x]` Edit **event**: name, date, venue, welcome line, **details** (registration‑page text).
+- **ADM‑2** `[x]` Edit **event**: name, date, venue, welcome line, **details**, **flyer image URL**, **pricing schedule** notice.
 - **ADM‑3** `[x]` Manage **ticket types**, listed under **Event Entry** and **Food Coupons** groups: **section** (Event Entry / Food Coupon), price, admits, capacity, comp, coupon allotments. Food‑coupon types admit 0 guests and grant the coupon(s) set in allotments.
 - **ADM‑4** `[x]` Manage **coupon denominations**.
 - **ADM‑5** `[x]` Edit **email template** (subject/body) + **Send test**.
@@ -235,6 +238,9 @@ Fresh: `db/schema.sql` then `db/seed.sql`. Incremental (idempotent):
 - [x] R‑NEW‑4 — ticket table kept everywhere. *(done)*
 - [x] R‑NEW‑5 — Event Entry vs Food Coupons as separate sections. *(done)*
 - [x] R‑NEW‑6 — same split at admin list + report (all places). *(done)*
+- [x] R‑NEW‑7 — event flyer image on the ticket page. *(done)*
+- [x] R‑NEW‑8 — show pricing schedule to members. *(done, display)*
+- [ ] PAY‑5 — make the pricing phases actually change prices by date + group discount? *(say the word)*
 - [ ] …add your next requirement here…
 
 ---
@@ -244,6 +250,7 @@ Fresh: `db/schema.sql` then `db/seed.sql`. Incremental (idempotent):
 | Date | Change |
 |---|---|
 | 2026‑08‑20 | Order‑level QR + one‑scan group check‑in; multi‑ticket cart; event‑details template; 800+ search; professional email + scan card; fixed false "already checked in". |
+| 2026‑08‑20 | R‑NEW‑7 event flyer image on registration page; R‑NEW‑8 pricing‑schedule notice banner. |
 | 2026‑08‑20 | R‑NEW‑6 extended the Entry/Food split to the admin ticket list and the report. |
 | 2026‑08‑20 | R‑NEW‑5 two purchase sections (Event Entry / Food Coupons) via ticket `category`, grouped everywhere; admin section selector. |
 | 2026‑08‑20 | R‑NEW‑1 cart ticket table; R‑NEW‑2 removed Country; R‑NEW‑3 scan shows tickets + coupons‑to‑issue; R‑NEW‑4 ticket table everywhere (cart/email/gate/stall). |

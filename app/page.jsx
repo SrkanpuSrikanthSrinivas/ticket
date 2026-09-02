@@ -175,12 +175,19 @@ export default function Buy() {
   // ---------- PICK ----------
   return (
     <div className="wrap">
+      {ev.flyer_url ? <img className="flyer" src={ev.flyer_url} alt={`${ev.name} flyer`} /> : null}
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ fontSize: 22, color: 'var(--plum)' }}>{ev.name}</h2>
         {(ev.date || ev.venue) && <div className="hint" style={{ marginTop: 4 }}>{[ev.date, ev.venue].filter(Boolean).join(' · ')}</div>}
         {ev.tagline && <p style={{ margin: '10px 0 0', color: '#443c50' }}>{ev.tagline}</p>}
         {ev.details && <p style={{ margin: '10px 0 0', color: 'var(--muted)', whiteSpace: 'pre-line', lineHeight: 1.55 }}>{ev.details}</p>}
       </div>
+      {ev.pricing_note ? (
+        <div className="pricebanner">
+          <div className="pb-h">💡 Pricing</div>
+          <div className="pb-b">{ev.pricing_note}</div>
+        </div>
+      ) : null}
 
       <TierSection title="Event Entry" icon="🎟" tiers={entryTiers} cart={cart} setQty={setQty} />
       <TierSection title="Food Coupons" icon="🍽" tiers={foodTiers} cart={cart} setQty={setQty}

@@ -11,7 +11,7 @@ export async function GET(req) {
   const pin = new URL(req.url).searchParams.get('pin');
   if (pin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
-  const event = (await sql`select id, name, event_date, venue, tagline, details, email_subject, email_body
+  const event = (await sql`select id, name, event_date, venue, tagline, details, flyer_url, pricing_note, email_subject, email_body
                            from events order by created_at desc, id desc limit 1`)[0] || null;
   if (!event) return Response.json({ event: null, couponTypes: [], ticketTypes: [] });
 

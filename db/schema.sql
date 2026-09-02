@@ -8,6 +8,8 @@ create table if not exists events (
   venue text,
   tagline text,
   details text,
+  flyer_url text,
+  pricing_note text,
   email_subject text,
   email_body text,
   created_at timestamptz default now()
