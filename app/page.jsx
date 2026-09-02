@@ -44,13 +44,16 @@ function TierSection({ title, icon, tiers, cart, setQty, note }) {
 export default function Buy() {
   const [ev, setEv] = useState(null);
   const [cart, setCart] = useState({});           // { ticketTypeId: qty }
-  const [buyer, setBuyer] = useState({ first: '', last: '', email: '', mobile: '', zip: '' });
+  const [buyer, setBuyer] = useState({ first: '', last: '', email: '', mobile: '', mobile2: '', zip: '' });
   const [stage, setStage] = useState('pick');     // pick | pay | done
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [order, setOrder] = useState(null);
   const dropinRef = useRef(null);
   const instRef = useRef(null);
+  const [payReady, setPayReady] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [payAttempt, setPayAttempt] = useState(0);
 
   useEffect(() => {
     fetch('/api/event', { cache: 'no-store' }).then((r) => r.json())
@@ -69,26 +72,61 @@ export default function Buy() {
   function validateBuyer() {
     if (!itemCount) return 'Select at least one ticket.';
     if (!buyer.first.trim() || !buyer.last.trim()) return 'First and last name are required.';
-    if (!buyer.email.trim()) return 'Email is required.';
+    const email = buyer.email.trim();
+    if (!email) return 'Email is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return 'Please enter a valid email address.';
+    const digits = buyer.mobile.replace(/\D/g, '');
     if (!buyer.mobile.trim()) return 'Mobile number is required.';
+    if (digits.length < 10 || digits.length > 15) return 'Please enter a valid mobile number (10–15 digits).';
+    if (buyer.mobile.replace(/\D/g, '') !== buyer.mobile2.replace(/\D/g, '')) return 'Mobile numbers do not match. Please re-enter to confirm.';
+    const zip = buyer.zip.trim();
+    if (zip && !/^[A-Za-z0-9][A-Za-z0-9 -]{2,9}$/.test(zip)) return 'Please enter a valid zip / postal code.';
     return '';
   }
 
-  async function goPay() {
+  function goPay() {
     const v = validateBuyer(); if (v) return setErr(v);
     setErr('');
     if (amountCents === 0) return submit(null);
-    setStage('pay'); setBusy(true);
-    try {
-      const { clientToken } = await (await fetch('/api/client-token')).json();
-      await loadScript('https://js.braintreegateway.com/web/dropin/1.43.0/js/dropin.min.js');
-      if (instRef.current) { await instRef.current.teardown().catch(() => {}); instRef.current = null; }
-      instRef.current = await window.braintree.dropin.create({ authorization: clientToken, container: dropinRef.current, card: { cardholderName: { required: true } } });
-    } catch (e) { setErr('Payment form failed to load. Please retry.'); setStage('pick'); }
-    setBusy(false);
+    setStage('pay'); setPayAttempt((n) => n + 1);
   }
 
+  // Build the Braintree Drop-in only once the pay screen (and its container) is on screen.
+  useEffect(() => {
+    if (stage !== 'pay' || payAttempt === 0) return;
+    let cancelled = false;
+    setPayReady(false); setPayError(''); setErr('');
+    const withTimeout = (promise, ms, msg) => Promise.race([
+      Promise.resolve(promise),
+      new Promise((_, rej) => setTimeout(() => rej(new Error(msg || 'timeout')), ms)),
+    ]);
+    (async () => {
+      try {
+        const tokenRes = await withTimeout(fetch('/api/client-token', { cache: 'no-store' }), 12000, 'token');
+        const tokenData = await tokenRes.json().catch(() => ({}));
+        if (!tokenRes.ok || !tokenData.clientToken) throw new Error('token');
+        await withTimeout(loadScript('https://js.braintreegateway.com/web/dropin/1.43.0/js/dropin.min.js'), 12000, 'script');
+        if (cancelled) return;
+        if (!window.braintree?.dropin) throw new Error('script');
+        if (instRef.current) { await instRef.current.teardown().catch(() => {}); instRef.current = null; }
+        const inst = await withTimeout(
+          window.braintree.dropin.create({ authorization: tokenData.clientToken, container: dropinRef.current, card: { cardholderName: { required: true } } }),
+          15000, 'create');
+        if (cancelled) { await inst.teardown().catch(() => {}); return; }
+        instRef.current = inst;
+        setPayReady(true);
+      } catch (e) {
+        if (cancelled) return;
+        setPayError(e.message === 'token'
+          ? 'Payment is temporarily unavailable. Please try again in a moment.'
+          : 'Payment form could not load — check your connection or any ad/privacy blocker, then retry.');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [stage, payAttempt]);
+
   async function pay() {
+    if (!payReady || !instRef.current) return;
     setErr(''); setBusy(true);
     try { const { nonce } = await instRef.current.requestPaymentMethod(); await submit(nonce); }
     catch (e) { setErr('Please complete the card details.'); setBusy(false); }
@@ -112,7 +150,7 @@ export default function Buy() {
     setBusy(false);
   }
 
-  function reset() { setOrder(null); setCart({}); setBuyer({ first: '', last: '', email: '', mobile: '', zip: '' }); setStage('pick'); }
+  function reset() { setOrder(null); setCart({}); setBuyer({ first: '', last: '', email: '', mobile: '', mobile2: '', zip: '' }); setPayReady(false); setPayError(''); setStage('pick'); }
 
   if (err && !ev && stage === 'pick') return <div className="wrap"><div className="card">{err}</div></div>;
   if (!ev) return <div className="wrap"><div className="card">Loading…</div></div>;
@@ -164,10 +202,17 @@ export default function Buy() {
             <span>Total</span><span>{money(amountCents)}</span>
           </div>
         </div>
-        <div ref={dropinRef} />
+        <div ref={dropinRef} style={{ display: payReady ? 'block' : 'none' }} />
+        {!payReady && !payError && <div className="hint" style={{ textAlign: 'center', padding: '18px 0' }}>Loading secure payment form…</div>}
+        {payError && (
+          <div>
+            <div className="err">{payError}</div>
+            <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }} onClick={() => setPayAttempt((n) => n + 1)}>Retry</button>
+          </div>
+        )}
         {err && <div className="err">{err}</div>}
-        <button className="btn btn-go btn-block" disabled={busy} onClick={pay}>{busy ? 'Processing…' : `Pay ${money(amountCents)}`}</button>
-        <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => { setStage('pick'); setErr(''); }}>Back</button>
+        {payReady && <button className="btn btn-go btn-block" disabled={busy} onClick={pay}>{busy ? 'Processing…' : `Pay ${money(amountCents)}`}</button>}
+        <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => { setStage('pick'); setErr(''); setPayError(''); if (instRef.current) { instRef.current.teardown().catch(() => {}); instRef.current = null; } setPayReady(false); }}>Back</button>
       </div>
     </div>
   );
@@ -216,8 +261,14 @@ export default function Buy() {
           </div>
           <div><label className="f">Email Id *</label><input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="jane@email.com" /></div>
           <div className="row">
-            <div className="grow"><label className="f">Mobile number *</label><input type="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: e.target.value })} placeholder="(469) …" /></div>
-            <div style={{ width: 130 }}><label className="f">Zip code</label><input value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" /></div>
+            <div className="grow"><label className="f">Mobile number *</label><input type="tel" inputMode="tel" value={buyer.mobile} onChange={(e) => setBuyer({ ...buyer, mobile: e.target.value })} placeholder="(469) …" /></div>
+            <div style={{ width: 130 }}><label className="f">Zip code</label><input inputMode="numeric" value={buyer.zip} onChange={(e) => setBuyer({ ...buyer, zip: e.target.value })} placeholder="75070" /></div>
+          </div>
+          <div><label className="f">Confirm mobile number *</label>
+            <input type="tel" inputMode="tel" value={buyer.mobile2}
+              onChange={(e) => setBuyer({ ...buyer, mobile2: e.target.value })}
+              onPaste={(e) => e.preventDefault()} placeholder="Re-enter mobile number" />
+            {buyer.mobile2 && buyer.mobile.replace(/\D/g, '') !== buyer.mobile2.replace(/\D/g, '') && <div className="hint" style={{ color: '#C62828', marginTop: 4 }}>Numbers don't match yet.</div>}
           </div>
           {err && <div className="err">{err}</div>}
           <button className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
