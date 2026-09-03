@@ -187,7 +187,7 @@ export default function Buy() {
           <p className="hint" style={{ marginTop: 12 }}>{ev.date || 'Date TBA'} · {ev.venue || ''}</p>
         </div>
         <div className="stub">
-          <div className="qrbox"><img src={`/api/qr?token=${encodeURIComponent(order.token)}`} alt="Entry QR" width="150" height="150" style={{ display: 'block', width: 150, height: 150 }} /></div>
+          <div className="qrbox"><img src={`/api/qr?token=${encodeURIComponent(order.token)}`} alt="Entry QR" width="200" height="200" style={{ display: 'block' }} /></div>
           <div className="code">{order.code}</div>
           <div className="cpn" style={{ fontSize: 10 }}>one code for the group</div>
         </div>

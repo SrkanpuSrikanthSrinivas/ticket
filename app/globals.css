@@ -45,8 +45,8 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .pass .brandline{color:var(--plum);font-weight:800;font-family:"Bricolage Grotesque";font-size:14px}
 .pass .who{font-family:"Bricolage Grotesque";font-weight:800;font-size:22px;margin-top:12px}
 .pass .type{display:inline-block;margin-top:8px;background:var(--marigold);color:#3a2900;font-weight:700;font-size:12px;padding:4px 10px;border-radius:999px}
-.pass .stub{width:150px;flex:none;background:var(--plum);color:#fff;padding:16px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-.pass .stub .qrbox{background:#fff;padding:8px;border-radius:10px;line-height:0}
+.pass .stub{flex:none;background:var(--plum);color:#fff;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.pass .stub .qrbox{background:#fff;padding:8px;border-radius:10px;line-height:0;width:150px}
 .pass .stub .code{font-family:"Space Mono";font-size:12px;color:#e9dcf3;text-align:center;word-break:break-all}
 
 .li{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line-2)}
@@ -137,7 +137,7 @@ input:focus,select:focus{outline:2px solid var(--plum);outline-offset:1px;border
 .rtable th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line)}
 .rtable td{padding:10px 6px;border-bottom:1px solid var(--line-2)}
 .rtable td:last-child,.rtable th:last-child{text-align:right}
-.pass .stub .qrbox img{display:block;width:150px;height:150px;border-radius:6px}
+.pass .stub .qrbox img{display:block;width:100%;height:auto;border-radius:6px}
 
 /* --- gate check-in cards (professional) --- */
 .gcard{border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#fff;box-shadow:var(--shadow);margin-top:16px}
@@ -223,3 +223,10 @@ body.buyer-festive::before{
   color:#fff;font-size:13.5px;font-weight:600;padding:7px 13px;border-radius:12px;backdrop-filter:blur(2px);
   max-width:100%;line-height:1.4;text-align:left}
 .event-hero .eh-details{color:rgba(255,255,255,.92);white-space:pre-line;line-height:1.6;font-size:14.5px;margin:14px 0 0}
+
+@media(max-width:520px){
+  .pass{flex-direction:column}
+  .pass .body{padding:18px}
+  .pass .stub{width:100%;padding:22px}
+  .pass .stub .qrbox{width:210px}
+}
