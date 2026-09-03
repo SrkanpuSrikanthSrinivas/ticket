@@ -232,11 +232,24 @@ export default function Buy() {
   return (
     <div className="wrap">
       {ev.flyer_url ? <img className="flyer" src={ev.flyer_url} alt={`${ev.name} flyer`} /> : null}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 22, color: 'var(--plum)' }}>{ev.name}</h2>
-        {(ev.date || ev.start_time || ev.venue) && <div className="hint" style={{ marginTop: 4 }}>{[[ev.date, [ev.start_time, ev.end_time].filter(Boolean).join('–')].filter(Boolean).join(', '), ev.venue].filter(Boolean).join(' · ')}</div>}
-        {ev.tagline && <p style={{ margin: '10px 0 0', color: '#443c50' }}>{ev.tagline}</p>}
-        {ev.details && <p style={{ margin: '10px 0 0', color: 'var(--muted)', whiteSpace: 'pre-line', lineHeight: 1.55 }}>{ev.details}</p>}
+      <div className="event-hero">
+        <div className="eh-glow" aria-hidden="true" />
+        <div className="eh-inner">
+          {ev.tagline && <div className="eh-eyebrow">{ev.tagline}</div>}
+          <h2 className="eh-title">{ev.name}</h2>
+          <div className="eh-chips">
+            {(() => {
+              const dateStr = [ev.start_date, ev.end_date && ev.end_date !== ev.start_date ? ev.end_date : null].filter(Boolean).join(' – ') || ev.date;
+              const timeStr = [ev.start_time, ev.end_time].filter(Boolean).join(' – ');
+              return (<>
+                {dateStr && <span className="eh-chip">📅 {dateStr}</span>}
+                {timeStr && <span className="eh-chip">🕒 {timeStr}</span>}
+                {ev.venue && <span className="eh-chip">📍 {ev.venue}</span>}
+              </>);
+            })()}
+          </div>
+          {ev.details && <p className="eh-details">{ev.details}</p>}
+        </div>
       </div>
       {(ev.pricing_note || ev.pricing_deadline) ? (
         <div className="pricebanner">

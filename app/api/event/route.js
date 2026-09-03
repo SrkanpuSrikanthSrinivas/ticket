@@ -8,7 +8,7 @@ import { ensureSchema } from '../../../lib/ensureSchema';
 // The embedded buyer flow renders from this.
 export async function GET() {
   await ensureSchema();
-  const ev = (await sql`select id, name, event_date, start_time, end_time, venue, tagline, details, flyer_url, pricing_note, pricing_deadline, food_note
+  const ev = (await sql`select id, name, event_date, start_date, end_date, start_time, end_time, venue, tagline, details, flyer_url, pricing_note, pricing_deadline, food_note, food_tip
                         from events order by created_at desc, id desc limit 1`)[0];
   if (!ev) return Response.json({ error: 'no_event' }, { status: 404 });
 
@@ -27,5 +27,5 @@ export async function GET() {
     soldOut: t.max_qty != null && t.sold >= t.max_qty,
   }));
 
-  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, details: ev.details, start_time: ev.start_time, end_time: ev.end_time, flyer_url: ev.flyer_url, pricing_note: ev.pricing_note, pricing_deadline: ev.pricing_deadline, food_note: ev.food_note, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ id: ev.id, name: ev.name, date: ev.event_date, venue: ev.venue, tagline: ev.tagline, details: ev.details, start_date: ev.start_date, end_date: ev.end_date, start_time: ev.start_time, end_time: ev.end_time, flyer_url: ev.flyer_url, pricing_note: ev.pricing_note, pricing_deadline: ev.pricing_deadline, food_note: ev.food_note, food_tip: ev.food_tip, ticketTypes }, { headers: { 'Cache-Control': 'no-store' } });
 }

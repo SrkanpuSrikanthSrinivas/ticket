@@ -5,6 +5,8 @@ create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   event_date text,
+  start_date text,
+  end_date text,
   start_time text,
   end_time text,
   venue text,
@@ -14,6 +16,7 @@ create table if not exists events (
   pricing_note text,
   pricing_deadline text,
   food_note text,
+  food_tip text,
   email_subject text,
   email_body text,
   created_at timestamptz default now()
