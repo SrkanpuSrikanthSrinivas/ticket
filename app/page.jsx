@@ -119,6 +119,9 @@ export default function Buy() {
         await withTimeout(loadScript('https://js.braintreegateway.com/web/dropin/1.43.0/js/dropin.min.js'), 12000, 'script');
         if (cancelled) return;
         if (!window.braintree?.dropin) throw new Error('script');
+        // wait a tick so the (now visible) container is laid out before Braintree measures it
+        await new Promise((r) => setTimeout(r, 60));
+        if (!dropinRef.current) throw new Error('script');
         if (instRef.current) { await instRef.current.teardown().catch(() => {}); instRef.current = null; }
         const inst = await withTimeout(
           window.braintree.dropin.create({ authorization: tokenData.clientToken, container: dropinRef.current, card: { cardholderName: { required: true } } }),
@@ -213,8 +216,8 @@ export default function Buy() {
             <span>Total</span><span>{money(amountCents)}</span>
           </div>
         </div>
-        <div ref={dropinRef} style={{ display: payReady ? 'block' : 'none' }} />
         {!payReady && !payError && <div className="hint" style={{ textAlign: 'center', padding: '18px 0' }}>Loading secure payment form…</div>}
+        <div ref={dropinRef} style={{ minHeight: payReady ? 40 : 0 }} />
         {payError && (
           <div>
             <div className="err">{payError}</div>
