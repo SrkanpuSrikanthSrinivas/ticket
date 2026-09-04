@@ -78,7 +78,10 @@ export default function Buy() {
   const setQty = (id, q) => setCart((c) => ({ ...c, [id]: Math.max(0, q) }));
   const lineItems = tiers.filter((t) => (cart[t.id] || 0) > 0).map((t) => ({ ...t, qty: cart[t.id] }));
   const itemCount = lineItems.reduce((s, t) => s + t.qty, 0);
-  const amountCents = lineItems.reduce((s, t) => s + (t.is_comp ? 0 : t.price_cents * t.qty), 0);
+  const subtotalCents = lineItems.reduce((s, t) => s + (t.is_comp ? 0 : t.price_cents * t.qty), 0);
+  const feePct = Number(ev?.convenience_fee_pct) || 0;
+  const feeCents = subtotalCents > 0 ? Math.round(subtotalCents * feePct / 100) : 0;
+  const totalCents = subtotalCents + feeCents;
 
   function validateBuyer() {
     if (!itemCount) return 'Select at least one ticket.';
@@ -98,7 +101,7 @@ export default function Buy() {
   function goPay() {
     const v = validateBuyer(); if (v) return setErr(v);
     setErr('');
-    if (amountCents === 0) return submit(null);
+    if (totalCents === 0) return submit(null);
     setStage('pay'); setPayAttempt((n) => n + 1);
   }
 
@@ -212,8 +215,10 @@ export default function Buy() {
             </div>
           ))}
           <div className="divider" />
-          <div className="row" style={{ justifyContent: 'space-between', fontWeight: 800 }}>
-            <span>Total</span><span>{money(amountCents)}</span>
+          <div className="row" style={{ justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(subtotalCents)}</span></div>
+          {feeCents > 0 && <div className="row" style={{ justifyContent: 'space-between' }}><span>Convenience fee ({feePct}%)</span><span>{money(feeCents)}</span></div>}
+          <div className="row" style={{ justifyContent: 'space-between', fontWeight: 800, marginTop: 2 }}>
+            <span>Total</span><span>{money(totalCents)}</span>
           </div>
         </div>
         {!payReady && !payError && <div className="hint" style={{ textAlign: 'center', padding: '18px 0' }}>Loading secure payment form…</div>}
@@ -225,7 +230,7 @@ export default function Buy() {
           </div>
         )}
         {err && <div className="err">{err}</div>}
-        {payReady && <button className="btn btn-go btn-block" disabled={busy} onClick={pay}>{busy ? 'Processing…' : `Pay ${money(amountCents)}`}</button>}
+        {payReady && <button className="btn btn-go btn-block" disabled={busy} onClick={pay}>{busy ? 'Processing…' : `Pay ${money(totalCents)}`}</button>}
         <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => { setStage('pick'); setErr(''); setPayError(''); if (instRef.current) { instRef.current.teardown().catch(() => {}); instRef.current = null; } setPayReady(false); }}>Back</button>
       </div>
     </div>
@@ -278,9 +283,11 @@ export default function Buy() {
               <tr key={t.id}><td>{t.name}</td><td className="q">×{t.qty}</td><td className="p">{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents * t.qty)}</td></tr>
             ))}
           </tbody></table>
-          <div className="row" style={{ justifyContent: 'space-between', fontWeight: 800, marginTop: 6 }}>
-            <span>{itemCount} ticket{itemCount > 1 ? 's' : ''}</span><span>{amountCents ? money(amountCents) : 'Free'}</span>
+          <div className="row" style={{ justifyContent: 'space-between', marginTop: 6 }}>
+            <span>{itemCount} ticket{itemCount > 1 ? 's' : ''}</span><span>{subtotalCents ? money(subtotalCents) : 'Free'}</span>
           </div>
+          {feeCents > 0 && <div className="row" style={{ justifyContent: 'space-between' }}><span>Convenience fee ({feePct}%)</span><span>{money(feeCents)}</span></div>}
+          {feeCents > 0 && <div className="row" style={{ justifyContent: 'space-between', fontWeight: 800 }}><span>Total</span><span>{money(totalCents)}</span></div>}
           <div className="divider" />
           <div className="row">
             <div className="grow"><label className="f">First name *</label><input value={buyer.first} onChange={(e) => setBuyer({ ...buyer, first: onlyName(e.target.value) })} placeholder="Jane" /></div>
@@ -299,7 +306,7 @@ export default function Buy() {
           </div>
           {err && <div className="err">{err}</div>}
           <button className="btn btn-primary btn-block" disabled={busy} onClick={goPay}>
-            {amountCents ? `Continue to payment · ${money(amountCents)}` : 'Get tickets'}
+            {totalCents ? `Continue to payment · ${money(totalCents)}` : 'Get tickets'}
           </button>
         </div>
       )}
