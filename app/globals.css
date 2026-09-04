@@ -230,3 +230,4 @@ body.buyer-festive::before{
   .pass .stub{width:100%;padding:22px}
   .pass .stub .qrbox{width:210px}
 }
+.foodguide .fg-tip{background:#FFF6E6;border:1px solid #F0D89A;color:#7a5400;font-weight:700;font-size:13.5px;line-height:1.5;padding:9px 12px;border-radius:10px;margin-bottom:10px}
