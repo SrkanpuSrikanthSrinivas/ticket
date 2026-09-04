@@ -17,6 +17,7 @@ create table if not exists events (
   pricing_deadline text,
   food_note text,
   food_tip text,
+  convenience_fee_pct numeric not null default 0,
   email_subject text,
   email_body text,
   created_at timestamptz default now()
@@ -61,6 +62,7 @@ create table if not exists orders (
   buyer_country text,
   buyer_zip text,
   code text,
+  fee_cents int not null default 0,
   amount_cents int not null default 0,
   braintree_txn_id text,
   status text not null default 'pending',  -- pending | paid | failed | refunded

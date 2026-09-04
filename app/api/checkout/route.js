@@ -52,7 +52,10 @@ export async function POST(req) {
     tierMap[c.ticketTypeId] = t; ev0 = t;
   }
   const eventId = ev0.event_id;
-  const amountCents = cart.reduce((sum, c) => { const t = tierMap[c.ticketTypeId]; return sum + (t.is_comp ? 0 : t.price_cents * c.qty); }, 0);
+  const subtotalCents = cart.reduce((sum, c) => { const t = tierMap[c.ticketTypeId]; return sum + (t.is_comp ? 0 : t.price_cents * c.qty); }, 0);
+  const feePct = Number(ev0.convenience_fee_pct) || 0;
+  const feeCents = subtotalCents > 0 ? Math.round(subtotalCents * feePct / 100) : 0;
+  const amountCents = subtotalCents + feeCents;
 
   let txnId = null;
   if (amountCents > 0) {
@@ -67,8 +70,8 @@ export async function POST(req) {
   const orderId = randomUUID();
   const orderCode = humanCode();
   try {
-    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, code, amount_cents, braintree_txn_id, status)
-              values (${orderId}, ${eventId}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${orderCode}, ${amountCents}, ${txnId}, 'paid')`;
+    await sql`insert into orders (id, event_id, buyer_name, buyer_email, buyer_phone, buyer_country, buyer_zip, code, fee_cents, amount_cents, braintree_txn_id, status)
+              values (${orderId}, ${eventId}, ${name}, ${email}, ${mobile || null}, ${country}, ${zip}, ${orderCode}, ${feeCents}, ${amountCents}, ${txnId}, 'paid')`;
   } catch (e) {
     console.error('order insert failed:', e);
     return Response.json({ error: 'server_error', message: 'Payment captured but order save failed' + (txnId ? ` (txn ${txnId})` : '') }, { status: 500 });

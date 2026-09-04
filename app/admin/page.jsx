@@ -204,6 +204,10 @@ function EventModal({ pin, event, onClose, onSaved }) {
           placeholder={"1 plate pani puri — approx $6\nTomato slice — approx $6\nMango lassi — approx $4\nChapati curry — approx $6\n***Prices are approximate and may vary by vendor"}
           style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} />
         <div className="hint" style={{ margin: '6px 0 0' }}>Shown to buyers so they know how food coupons can be used.</div></div>
+      <div><label className="f">Convenience fee (%)</label>
+        <input type="number" min="0" step="0.1" value={f.convenience_fee_pct}
+          onChange={(e) => setF({ ...f, convenience_fee_pct: e.target.value })} placeholder="0" style={{ width: 140 }} />
+        <div className="hint" style={{ margin: '6px 0 0' }}>Added to the ticket subtotal at checkout as a separate line item (e.g. 3 = 3%). Set 0 for none.</div></div>
       {err && <div className="err">{err}</div>}
     </Sheet>
   );
