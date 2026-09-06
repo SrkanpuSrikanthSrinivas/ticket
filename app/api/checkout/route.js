@@ -40,7 +40,7 @@ export async function POST(req) {
   let ev0 = null;
   for (const c of cart) {
     const t = (await sql`
-      select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, tt.active, tt.category,
+      select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, tt.active, tt.category, tt.admits,
              e.name as event_name, e.event_date, e.venue, e.details as event_details, e.email_subject, e.email_body
       from ticket_types tt join events e on e.id = tt.event_id
       where tt.id=${c.ticketTypeId} and tt.active=true`)[0];
@@ -86,6 +86,17 @@ export async function POST(req) {
       tickets.push({ typeName: t.name, qty: c.qty, category: t.category || 'entry' });
     } catch (e) { console.error('ticket insert failed:', e); }
   }
+
+  // Append-only, PII-free audit record for verifiable adoption evidence.
+  try {
+    const guests = cart.reduce((sum, c) => sum + (Number(tierMap[c.ticketTypeId].admits) || 0) * c.qty, 0);
+    const itemsSummary = tickets.map((t) => `${t.typeName} x${t.qty}`).join('; ');
+    const a = (await sql`insert into audit_log (order_id, event_name, items, guests, amount_cents, fee_cents, braintree_txn_id, status)
+      values (${orderId}, ${ev0.event_name}, ${itemsSummary}, ${guests}, ${amountCents}, ${feeCents}, ${txnId}, 'completed') returning id, created_at`)[0];
+    const d = new Date(a.created_at);
+    const ref = `TXN-${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}-${String(a.id).padStart(5, '0')}`;
+    await sql`update audit_log set txn_ref=${ref} where id=${a.id}`;
+  } catch (e) { console.error('audit_log write failed (non-fatal):', e?.message || e); }
 
   const orderToken = signTicket(orderId);
   const baseUrl = new URL(req.url).origin;

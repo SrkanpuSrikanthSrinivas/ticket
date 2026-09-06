@@ -231,3 +231,20 @@ body.buyer-festive::before{
   .pass .stub .qrbox{width:210px}
 }
 .foodguide .fg-tip{background:#FFF6E6;border:1px solid #F0D89A;color:#7a5400;font-weight:700;font-size:13.5px;line-height:1.5;padding:9px 12px;border-radius:10px;margin-bottom:10px}
+
+/* --- public impact dashboard --- */
+.impact{max-width:920px;margin:0 auto;padding:28px 18px 60px}
+.impact-hero{background:linear-gradient(135deg,#3B1E54,#5B2A7A 55%,#1B998B);border-radius:22px;padding:34px 28px;color:#fff;box-shadow:0 14px 40px rgba(59,30,84,.28);position:relative;overflow:hidden}
+.impact-hero .ih-eyebrow{color:#FCD9A0;font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:12px}
+.impact-hero .ih-title{font-family:"Bricolage Grotesque";font-weight:800;font-size:34px;line-height:1.1;margin:8px 0 0}
+.impact-hero .ih-sub{color:rgba(255,255,255,.9);margin:10px 0 0;font-size:15px;line-height:1.5}
+.impact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}
+@media(min-width:680px){.impact-grid{grid-template-columns:repeat(4,1fr)}}
+.impact-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 16px;box-shadow:var(--shadow)}
+.impact-card .ic-ic{font-size:22px}
+.impact-card .ic-v{font-family:"Bricolage Grotesque";font-weight:800;font-size:30px;line-height:1;color:var(--plum);margin-top:8px}
+.impact-card .ic-k{color:var(--muted);font-size:12.5px;font-weight:600;margin-top:6px}
+.impact-foot{margin-top:22px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;color:#443c50;font-size:14px;line-height:1.9}
+.impact-foot .ic-note{color:var(--muted);font-size:12.5px;margin-top:8px;line-height:1.5}
+.impact-monthly{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
+.impact-monthly .im-h{font-family:"Bricolage Grotesque";font-weight:800;color:var(--plum);font-size:16px;margin-bottom:8px}
