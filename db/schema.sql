@@ -93,3 +93,18 @@ create table if not exists coupons (
   redeemed_by text
 );
 create index if not exists coupons_ticket_idx on coupons(ticket_id);
+
+-- Append-only transaction audit trail (no purchaser PII). One row per completed order.
+create table if not exists audit_log (
+  id bigserial primary key,
+  txn_ref text,
+  order_id uuid,
+  event_name text,
+  items text,
+  guests int not null default 0,
+  amount_cents int not null default 0,
+  fee_cents int not null default 0,
+  braintree_txn_id text,
+  status text,
+  created_at timestamptz default now()
+);
