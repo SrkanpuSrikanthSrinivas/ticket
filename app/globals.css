@@ -262,6 +262,3 @@ body.buyer-festive::before{
   min-width:36px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:0 9px;flex:none}
 .gcard.ok .gitem .gq{background:var(--teal)}
 .gcard .gsec{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:4px}
-.phone-input{width:100%;font-family:"Space Mono","SF Mono",monospace;font-size:24px;font-weight:700;text-align:center;
-  padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:14px;letter-spacing:1px}
-.phone-input:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(59,30,84,.12)}
