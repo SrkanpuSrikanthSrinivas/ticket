@@ -18,6 +18,8 @@ const nextConfig = {
       { source: '/admin', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
       { source: '/gate',  headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
       { source: '/stall', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
+      { source: '/impact', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
+      { source: '/report', headers: [{ key: 'Content-Security-Policy', value: `frame-ancestors 'self';` }] },
     ];
   },
 };
