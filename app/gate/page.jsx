@@ -132,14 +132,19 @@ export default function Gate() {
             const press = (dgt) => setQ((q + dgt).replace(/\D/g, '').slice(0, 10));
             return (
               <div style={{ marginTop: 14 }}>
-                <div className="phone-display">{q ? q.replace(/(\d{3})(\d{3})(\d{0,4})/, (m, a, b, c) => c ? `(${a}) ${b}-${c}` : (b ? `(${a}) ${b}` : a)) : <span style={{ color: 'var(--muted)' }}>Enter phone number</span>}</div>
+                <input className="phone-input" inputMode="numeric" autoComplete="tel" autoFocus
+                  aria-label="Phone number"
+                  value={q ? q.replace(/(\d{3})(\d{3})(\d{0,4})/, (m, a, b, c) => c ? `(${a}) ${b}-${c}` : (b ? `(${a}) ${b}` : a)) : ''}
+                  onChange={(e) => setQ(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onPaste={(e) => { e.preventDefault(); setQ((e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 10)); }}
+                  placeholder="Type or paste phone number" />
                 <div className="pinpad numpad">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <button key={n} onClick={() => press(String(n))}>{n}</button>)}
                   <button onClick={() => setQ(q.slice(0, -1))} aria-label="delete">⌫</button>
                   <button onClick={() => press('0')}>0</button>
                   <button onClick={() => setQ('')} aria-label="clear">✕</button>
                 </div>
-                <div className="hint" style={{ textAlign: 'center' }}>Searches as you type (from 3 digits).</div>
+                <div className="hint" style={{ textAlign: 'center' }}>Type, paste, or tap — searches from 3 digits.</div>
               </div>
             );
           })()}
@@ -201,13 +206,10 @@ export default function Gate() {
               {(() => {
                 const rows = card.ticketRows?.length ? card.ticketRows : splitItems(card.items).map((x) => ({ ...x, category: 'entry' }));
                 const entry = rows.filter((r) => (r.category || 'entry') !== 'food');
-                const food = rows.filter((r) => (r.category || 'entry') === 'food');
-                return (<>
-                  {entry.length > 0 && <><div className="gsec">🎟 Entry tickets</div>
-                    <div className="gitems">{entry.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><span className="gq">{it.qty}</span></div>)}</div></>}
-                  {food.length > 0 && <><div className="gsec" style={{ marginTop: 12 }}>🍽 Food coupon tickets</div>
-                    <div className="gitems">{food.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><span className="gq">{it.qty}</span></div>)}</div></>}
-                </>);
+                return entry.length > 0 ? (<>
+                  <div className="gsec">🎟 Entry tickets</div>
+                  <div className="gitems">{entry.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><span className="gq">{it.qty}</span></div>)}</div>
+                </>) : null;
               })()}
               {card.couponPreview?.length > 0 && (<>
                 <div className="gsec" style={{ marginTop: 14 }}>🍽 Food coupons to issue</div>
