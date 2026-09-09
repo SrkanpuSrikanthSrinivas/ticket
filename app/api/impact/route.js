@@ -5,7 +5,9 @@ import { sql, ensureSchema } from '../../../lib/db';
 
 // Public adoption/impact metrics. AGGREGATE ONLY — never returns buyer PII.
 // Every number is derived from the production transaction database at request time.
-export async function GET() {
+export async function GET(req) {
+  const pin = new URL(req.url).searchParams.get('pin');
+  if (pin !== process.env.ADMIN_PIN) return new Response('unauthorized', { status: 401 });
   await ensureSchema();
   const r = (await sql`
     select
@@ -51,5 +53,5 @@ export async function GET() {
     monthly,
     data_source: 'Production transaction database',
     updated_at: now.toISOString(),
-  }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

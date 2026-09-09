@@ -5,21 +5,16 @@ Production event‑ticketing, gate check‑in, and food‑coupon platform develo
 Vercel and used in real production by a nonprofit community organization.
 
 - 🌐 **Live application:** https://ticket-two-tau.vercel.app
-impact
+- 📊 **Impact dashboard (private, admin PIN):** /impact
+- 🔎 **Impact API (private, admin PIN):** /api/impact
 
 ## Production Adoption
 
-> These figures are generated automatically from the live production transaction
-> database. They are aggregate only and contain no purchaser personal information.
-
-<!--IMPACT_START-->
-🎟 Tickets processed: —
-💳 Transactions processed: —
-🎪 Events supported: —
-👥 Users served: —
-🚀 Months in production: —
-_Last updated: pending first sync_
-<!--IMPACT_END-->
+This platform is in real production use by a nonprofit community organization.
+Adoption and impact metrics (tickets processed, transactions, events, users served,
+months in production) are generated automatically from the live production database
+and are available on a **private, access-controlled dashboard** — they are not
+published here. Metrics and transaction audit exports can be provided on request.
 
 ## What it does
 
@@ -40,3 +35,9 @@ coupon redemption; organizers configure everything and watch a live report.
 See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the full requirements and
 data model, and the in‑app `/report` for live operational stats.
 
+## Evidence chain
+
+Created → organization adopted → deployed to production → real transactions occurred
+→ measurable, database‑verified impact. The `/impact` page and `/api/impact` endpoint
+expose that impact publicly and verifiably, sourced directly from the production
+database rather than manually maintained.
