@@ -248,3 +248,20 @@ body.buyer-festive::before{
 .impact-foot .ic-note{color:var(--muted);font-size:12.5px;margin-top:8px;line-height:1.5}
 .impact-monthly{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
 .impact-monthly .im-h{font-family:"Bricolage Grotesque";font-weight:800;color:var(--plum);font-size:16px;margin-bottom:8px}
+
+/* --- gate phone number pad --- */
+.phone-display{font-family:"Space Mono","SF Mono",monospace;font-size:24px;font-weight:700;text-align:center;
+  padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:14px;letter-spacing:1px;min-height:30px}
+.pinpad.numpad{max-width:320px;margin:0 auto}
+.pinpad.numpad button{font-size:22px}
+
+/* --- clearer gate breakdown --- */
+.gcard .gitem{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-2);font-size:16px;color:var(--ink)}
+.gcard .gitem:last-child{border-bottom:0}
+.gcard .gitem .gq{font-family:"Bricolage Grotesque";font-weight:800;font-size:17px;color:#fff;background:var(--plum);
+  min-width:36px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:0 9px;flex:none}
+.gcard.ok .gitem .gq{background:var(--teal)}
+.gcard .gsec{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:4px}
+.phone-input{width:100%;font-family:"Space Mono","SF Mono",monospace;font-size:24px;font-weight:700;text-align:center;
+  padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:14px;letter-spacing:1px}
+.phone-input:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(59,30,84,.12)}

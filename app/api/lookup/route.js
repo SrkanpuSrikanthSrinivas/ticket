@@ -28,6 +28,8 @@ export async function POST(req) {
       where o.id=${orderId} group by o.id`;
   } else {
     const like = `%${q}%`;
+    const qDigits = String(q).replace(/\D/g, '');
+    const digits = qDigits ? `%${qDigits}%` : '%~nomatch~%';
     rows = await sql`
       select o.id, o.buyer_name, o.buyer_email, o.code,
         count(t.id)::int ticket_count,
@@ -37,6 +39,8 @@ export async function POST(req) {
         max(t.checked_in_at) as checked_in_at
       from orders o join tickets t on t.order_id=o.id join ticket_types tt on tt.id=t.ticket_type_id
       where o.buyer_name ilike ${like} or o.buyer_email ilike ${like} or o.code ilike ${like}
+         or o.braintree_txn_id ilike ${like}
+         or regexp_replace(coalesce(o.buyer_phone,''), '\D', '', 'g') like ${digits}
          or o.id in (select order_id from tickets where code ilike ${like})
       group by o.id order by o.buyer_name limit 51`;
   }

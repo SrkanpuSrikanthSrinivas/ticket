@@ -5,15 +5,38 @@ const nf = (n) => (n == null ? '—' : Number(n).toLocaleString());
 const money = (n) => (n == null ? '—' : `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 export default function Impact() {
+  const [pin, setPin] = useState('');
+  const [authed, setAuthed] = useState(false);
   const [d, setD] = useState(null);
-  const [err, setErr] = useState('');
-  useEffect(() => {
-    fetch('/api/impact', { cache: 'no-store' }).then((r) => r.json())
-      .then(setD).catch(() => setErr('Could not load impact data.'));
-  }, []);
+  const [msg, setMsg] = useState('');
 
-  if (err) return <div className="wrap"><div className="card">{err}</div></div>;
-  if (!d) return <div className="wrap"><div className="card">Loading impact data…</div></div>;
+  async function load(p = pin) {
+    const res = await fetch(`/api/impact?pin=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: 'no-store' });
+    if (res.status === 401) { setMsg('Wrong PIN'); return false; }
+    if (!res.ok) { setMsg('Could not load'); return false; }
+    setD(await res.json()); return true;
+  }
+  useEffect(() => { if (authed) load(); }, [authed]);
+
+  if (!authed) {
+    const press = (n) => setPin((pin + n).slice(0, 6));
+    return (
+      <div><div className="topbar"><b>Impact</b></div>
+        <div className="wrap"><div className="card" style={{ textAlign: 'center' }}>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>Private — organizer only</div>
+          <h2 style={{ fontSize: 20 }}>Enter the admin PIN</h2>
+          <div className="pindots">{[0, 1, 2, 3].map((i) => <i key={i} className={pin.length > i ? 'f' : ''} />)}</div>
+          <div className="pinpad">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <button key={n} onClick={() => press(n)}>{n}</button>)}
+            <button onClick={() => setPin('')}>✕</button><button onClick={() => press(0)}>0</button>
+            <button onClick={async () => { if (await load(pin)) setAuthed(true); }}>→</button>
+          </div>{msg && <p className="err">{msg}</p>}
+        </div></div>
+      </div>
+    );
+  }
+
+  if (!d) return <div><div className="topbar"><b>Impact</b></div><div className="wrap"><div className="card">Loading…</div></div></div>;
 
   const cards = [
     { k: 'Tickets processed', v: nf(d.tickets_processed), ic: '🎟' },
@@ -29,7 +52,7 @@ export default function Impact() {
   return (
     <div className="impact">
       <div className="impact-hero">
-        <div className="ih-eyebrow">Adoption &amp; Impact</div>
+        <div className="ih-eyebrow">Adoption &amp; Impact · Private</div>
         <h1 className="ih-title">{d.platform}</h1>
         <p className="ih-sub">Production ticketing platform in real-world use by {d.organization}.</p>
       </div>
@@ -60,7 +83,7 @@ export default function Impact() {
         <div><b>Organization using platform:</b> {d.organization}</div>
         <div><b>Data source:</b> {d.data_source}</div>
         <div><b>Last updated:</b> {new Date(d.updated_at).toLocaleString()}</div>
-        <div className="ic-note">All figures are aggregate and generated automatically from the live production database. No personal purchaser information is shown.</div>
+        <div className="ic-note">Private view. Figures are aggregate and generated automatically from the live production database.</div>
       </div>
     </div>
   );

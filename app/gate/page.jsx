@@ -83,9 +83,10 @@ export default function Gate() {
   }
 
   useEffect(() => {
-    if (mode !== 'type') return;
+    if (mode !== 'type' && mode !== 'phone') return;
     const val = q.trim();
-    if (val.length < 2) { setMatches(null); if (card?.kind === 'none') setCard(null); return; }
+    const minLen = mode === 'phone' ? 3 : 2;
+    if (val.length < minLen) { setMatches(null); if (card?.kind === 'none') setCard(null); return; }
     const id = setTimeout(() => lookup(val), 250);
     return () => clearTimeout(id);
   }, [q, mode]);
@@ -122,20 +123,45 @@ export default function Gate() {
       <div className="wrap">
         <div className="card">
           <div className="segment">
-            <button className={mode === 'type' ? 'on' : ''} onClick={() => { setMode('type'); stopScan(); }}>Type / search</button>
-            <button className={mode === 'scan' ? 'on' : ''} onClick={() => { setMode('scan'); startScan(); }}>Scan QR</button>
+            <button className={mode === 'phone' ? 'on' : ''} onClick={() => { setMode('phone'); stopScan(); setQ(''); setMatches(null); setCard(null); }}>📱 Phone</button>
+            <button className={mode === 'type' ? 'on' : ''} onClick={() => { setMode('type'); stopScan(); setQ(''); setMatches(null); setCard(null); }}>🔎 Name / Email</button>
+            <button className={mode === 'scan' ? 'on' : ''} onClick={() => { setMode('scan'); startScan(); setQ(''); setMatches(null); setCard(null); }}>📷 Scan QR</button>
           </div>
-          {mode === 'type' ? (
+
+          {mode === 'phone' && (() => {
+            const press = (dgt) => setQ((q + dgt).replace(/\D/g, '').slice(0, 10));
+            return (
+              <div style={{ marginTop: 14 }}>
+                <input className="phone-input" inputMode="numeric" autoComplete="tel" autoFocus
+                  aria-label="Phone number"
+                  value={q ? q.replace(/(\d{3})(\d{3})(\d{0,4})/, (m, a, b, c) => c ? `(${a}) ${b}-${c}` : (b ? `(${a}) ${b}` : a)) : ''}
+                  onChange={(e) => setQ(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onPaste={(e) => { e.preventDefault(); setQ((e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 10)); }}
+                  placeholder="Type or paste phone number" />
+                <div className="pinpad numpad">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <button key={n} onClick={() => press(String(n))}>{n}</button>)}
+                  <button onClick={() => setQ(q.slice(0, -1))} aria-label="delete">⌫</button>
+                  <button onClick={() => press('0')}>0</button>
+                  <button onClick={() => setQ('')} aria-label="clear">✕</button>
+                </div>
+                <div className="hint" style={{ textAlign: 'center' }}>Type, paste, or tap — searches from 3 digits.</div>
+              </div>
+            );
+          })()}
+
+          {mode === 'type' && (
             <div style={{ marginTop: 14 }}>
               <div className="row">
-                <input className="grow" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ticket code, name, or email"
-                  onKeyDown={(e) => e.key === 'Enter' && lookup()} />
+                <input className="grow" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, email, order code, or transaction id"
+                  onKeyDown={(e) => e.key === 'Enter' && lookup()} autoFocus />
                 <button className="btn btn-primary" disabled={busy} onClick={() => lookup()}>Find</button>
               </div>
-              <div className="hint">Type a name to see everyone who matches.</div>
+              <div className="hint">Type a name, email, order code (MKANT-…), or Braintree transaction id.</div>
             </div>
-          ) : (
-            <div style={{ marginTop: 12 }}><div id="reader" /><div className="hint">Point at the ticket QR. If the camera won't open, use Type / search.</div></div>
+          )}
+
+          {mode === 'scan' && (
+            <div style={{ marginTop: 12 }}><div id="reader" /><div className="hint">Point at the ticket QR. If the camera won't open, use another tab.</div></div>
           )}
         </div>
 
@@ -180,18 +206,15 @@ export default function Gate() {
               {(() => {
                 const rows = card.ticketRows?.length ? card.ticketRows : splitItems(card.items).map((x) => ({ ...x, category: 'entry' }));
                 const entry = rows.filter((r) => (r.category || 'entry') !== 'food');
-                const food = rows.filter((r) => (r.category || 'entry') === 'food');
-                return (<>
-                  {entry.length > 0 && <><div className="eyebrow" style={{ marginBottom: 4 }}>Event Entry</div>
-                    <div className="gitems">{entry.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>)}</div></>}
-                  {food.length > 0 && <><div className="eyebrow" style={{ margin: '12px 0 4px' }}>Food Coupons purchased</div>
-                    <div className="gitems">{food.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><b>×{it.qty}</b></div>)}</div></>}
-                </>);
+                return entry.length > 0 ? (<>
+                  <div className="gsec">🎟 Entry tickets</div>
+                  <div className="gitems">{entry.map((it, i) => <div className="gitem" key={i}><span>{it.name}</span><span className="gq">{it.qty}</span></div>)}</div>
+                </>) : null;
               })()}
               {card.couponPreview?.length > 0 && (<>
-                <div className="eyebrow" style={{ margin: '14px 0 4px' }}>Coupons to issue</div>
+                <div className="gsec" style={{ marginTop: 14 }}>🍽 Food coupons to issue</div>
                 <div className="gitems">{card.couponPreview.map((c, i) => (
-                  <div className="gitem" key={i}><span>🍽 {c.name}</span><b>×{c.qty}</b></div>
+                  <div className="gitem" key={i}><span>🍽 {c.name}</span><span className="gq">{c.qty}</span></div>
                 ))}</div>
               </>)}
               <div className="gcode" style={{ marginTop: 10 }}>{card.code}</div>
@@ -210,9 +233,9 @@ export default function Gate() {
               <div className="gbadge"><div className="gn">{card.guests}</div><div className="gl">in</div></div>
             </div>
             <div className="gbody">
-              <div className="eyebrow" style={{ marginBottom: 4 }}>Coupons to hand over</div>
+              <div className="gsec">🍽 Coupons to hand over</div>
               <div className="gitems">
-                {groupCoupons(card.coupons).map((c, i) => <div className="gitem" key={i}><span>🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span><b>×{c.qty}</b></div>)}
+                {groupCoupons(card.coupons).map((c, i) => <div className="gitem" key={i}><span>🍽 {c.name}{c.value_cents ? ` · ${money(c.value_cents)}` : ''}</span><span className="gq">{c.qty}</span></div>)}
                 {groupCoupons(card.coupons).length === 0 && <div className="hint">No coupons for this order.</div>}
               </div>
               <div className="coupon-total"><span className="ct-l">Total value</span><span className="ct-v">{money((card.coupons || []).reduce((s, c) => s + (c.value_cents || 0), 0))}</span></div>
