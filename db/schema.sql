@@ -31,6 +31,7 @@ create table if not exists ticket_types (
   price_cents int not null default 0,   -- price per unit purchased
   admits int not null default 1,
   category text not null default 'entry',        -- people one ticket admits (group/family > 1)
+  min_qty int not null default 1,       -- minimum quantity per purchase (groups: min size)
   max_qty int,                          -- capacity for this tier (null = unlimited)
   is_comp boolean default false,        -- comp/volunteer tiers skip payment
   active boolean default true,

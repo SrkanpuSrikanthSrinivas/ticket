@@ -23,6 +23,7 @@ export async function POST(req) {
   const priceCents = b.is_comp ? 0 : Math.max(0, Math.round(Number(b.price_cents) || 0));
   const category = b.category === 'food' ? 'food' : 'entry';
   const admits = category === 'food' ? Math.max(0, parseInt(b.admits, 10) || 0) : Math.max(1, parseInt(b.admits, 10) || 1);
+  const minQty = Math.max(1, parseInt(b.min_qty, 10) || 1);
   const maxQty = (b.max_qty === '' || b.max_qty == null) ? null : Math.max(0, parseInt(b.max_qty, 10));
   const isComp = !!b.is_comp;
   const active = b.active === false ? false : true;
@@ -34,12 +35,12 @@ export async function POST(req) {
     let affected = 1;
     if (b.id) {
       const r = await sql`update ticket_types set name=${name}, description=${description}, price_cents=${priceCents},
-                          admits=${admits}, max_qty=${maxQty}, is_comp=${isComp}, active=${active}, sort=${sort}, category=${category}
+                          admits=${admits}, min_qty=${minQty}, max_qty=${maxQty}, is_comp=${isComp}, active=${active}, sort=${sort}, category=${category}
                           where id=${ttId} returning id`;
       affected = r.length; // 0 means the id wasn't found under the current event
     } else {
-      await sql`insert into ticket_types (id, event_id, name, description, price_cents, admits, max_qty, is_comp, active, sort, category)
-                values (${ttId}, ${ev}, ${name}, ${description}, ${priceCents}, ${admits}, ${maxQty}, ${isComp}, ${active}, ${sort}, ${category})`;
+      await sql`insert into ticket_types (id, event_id, name, description, price_cents, admits, min_qty, max_qty, is_comp, active, sort, category)
+                values (${ttId}, ${ev}, ${name}, ${description}, ${priceCents}, ${admits}, ${minQty}, ${maxQty}, ${isComp}, ${active}, ${sort}, ${category})`;
     }
     await sql`delete from ticket_coupon_allotments where ticket_type_id=${ttId}`;
     for (const [cid, qty] of Object.entries(allot)) {
