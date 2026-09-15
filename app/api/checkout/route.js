@@ -40,11 +40,12 @@ export async function POST(req) {
   let ev0 = null;
   for (const c of cart) {
     const t = (await sql`
-      select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.is_comp, tt.active, tt.category, tt.admits,
+      select tt.id, tt.event_id, tt.name, tt.price_cents, tt.max_qty, tt.min_qty, tt.is_comp, tt.active, tt.category, tt.admits,
              e.name as event_name, e.event_date, e.venue, e.details as event_details, e.email_subject, e.email_body
       from ticket_types tt join events e on e.id = tt.event_id
       where tt.id=${c.ticketTypeId} and tt.active=true`)[0];
     if (!t) return Response.json({ error: 'ticket_unavailable', message: 'A selected ticket is no longer available.' }, { status: 404 });
+    if (t.min_qty && c.qty < t.min_qty) return Response.json({ error: 'below_min', message: `${t.name} requires a minimum of ${t.min_qty}.` }, { status: 400 });
     if (t.max_qty != null) {
       const sold = (await sql`select coalesce(sum(qty),0)::int s from tickets where ticket_type_id=${t.id} and status <> 'void'`)[0].s;
       if (sold + c.qty > t.max_qty) return Response.json({ error: 'sold_out', message: `${t.name} is sold out.` }, { status: 409 });

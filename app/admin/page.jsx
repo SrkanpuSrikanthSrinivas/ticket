@@ -336,7 +336,7 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
     id: ticket?.id, name: ticket?.name || '', priceDollars: ticket ? (ticket.price_cents || 0) / 100 : 0,
     description: ticket?.description || '', admits: ticket?.admits || 1, max_qty: ticket?.max_qty ?? '',
     is_comp: !!ticket?.is_comp, active: ticket?.active !== false, sort: ticket?.sort || 0, allot: { ...(ticket?.allot || {}) },
-    category: ticket?.category || 'entry',
+    category: ticket?.category || 'entry', min_qty: ticket?.min_qty || 1,
   });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -349,14 +349,14 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
     const { ok, data } = await post('/api/admin/tickets', {
       adminPin: pin, id: f.id, name: f.name.trim(), description: f.description,
       price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
-      admits: f.category === 'food' ? 0 : f.admits, category: f.category, max_qty: f.max_qty === '' ? null : f.max_qty, is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
+      admits: f.category === 'food' ? 0 : f.admits, category: f.category, min_qty: f.min_qty, max_qty: f.max_qty === '' ? null : f.max_qty, is_comp: f.is_comp, active: f.active, sort: f.sort, allot: f.allot,
     });
     setBusy(false);
     if (ok) {
       const saved = {
         id: data.id, name: f.name.trim(), description: f.description,
         price_cents: f.is_comp ? 0 : Math.round((Number(f.priceDollars) || 0) * 100),
-        admits: f.category === 'food' ? 0 : f.admits, category: f.category, max_qty: f.max_qty === '' ? null : (parseInt(f.max_qty, 10) || null),
+        admits: f.category === 'food' ? 0 : f.admits, category: f.category, min_qty: f.min_qty, max_qty: f.max_qty === '' ? null : (parseInt(f.max_qty, 10) || null),
         is_comp: f.is_comp, active: f.active, sort: f.sort, allot: { ...f.allot }, sold: ticket?.sold || 0,
       };
       onSaved(editing ? 'Ticket updated' : 'Ticket created', { ticket: saved });
@@ -398,10 +398,14 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
         <input value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="What's included" /></div>
       {f.category !== 'food' && (
         <div className="allot-row">
-          <div><div style={{ fontWeight: 600 }}>Group size</div><div className="hint" style={{ margin: 0 }}>People one ticket admits</div></div>
+          <div><div style={{ fontWeight: 600 }}>Admits per unit</div><div className="hint" style={{ margin: 0 }}>People one unit admits (usually 1; price is per unit)</div></div>
           <Stepper value={f.admits} min={1} onChange={(v) => set('admits', v)} />
         </div>
       )}
+      <div className="allot-row">
+        <div><div style={{ fontWeight: 600 }}>Minimum quantity</div><div className="hint" style={{ margin: 0 }}>For group tickets: the minimum headcount (e.g. 10). Total = price × quantity.</div></div>
+        <Stepper value={f.min_qty} min={1} onChange={(v) => set('min_qty', v)} />
+      </div>
       <label className="allot-row switch" style={{ cursor: 'pointer' }}>
         <div><div style={{ fontWeight: 600 }}>Comp ticket</div><div className="hint" style={{ margin: 0 }}>Volunteers / performers — no payment</div></div>
         <span><input type="checkbox" checked={f.is_comp} onChange={(e) => set('is_comp', e.target.checked)} /><span className="track"><span className="knob" /></span></span>

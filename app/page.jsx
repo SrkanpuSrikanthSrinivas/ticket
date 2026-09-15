@@ -23,25 +23,35 @@ const noSpaces = (v) => v.replace(/\s+/g, '').slice(0, 120);                 // 
       <div className="sechead"><span className="sec-ic">{icon}</span><span>{title}</span></div>
       {note && <div className="hint" style={{ margin: '2px 0 8px' }}>{note}</div>}
       <div className="stack">
-        {tiers.map((t) => (
+        {tiers.map((t) => {
+          const minq = t.min_qty || 1;
+          const cur = cart[t.id] || 0;
+          const dec = () => setQty(t.id, cur <= minq ? 0 : cur - 1);
+          const inc = () => setQty(t.id, cur === 0 ? minq : cur + 1);
+          const onInput = (v) => { const n = parseInt(v, 10) || 0; setQty(t.id, n === 0 ? 0 : Math.max(minq, n)); };
+          const perPerson = minq > 1;
+          return (
           <div key={t.id} className={`tier ${t.soldOut ? 'out' : ''}`} style={{ cursor: 'default' }}>
             <div className="grow">
               <div className="nm">{t.name}</div>
               {t.description && <div className="ds">{t.description}</div>}
-              {t.admits > 1 && <div className="ds">Admits {t.admits} people</div>}
+              {perPerson && <div className="ds">Minimum {minq} people · {money(t.price_cents)} per person</div>}
+              {!perPerson && t.admits > 1 && <div className="ds">Admits {t.admits} people</div>}
+              {cur > 0 && perPerson && <div className="ds" style={{ color: 'var(--plum)', fontWeight: 700 }}>{cur} × {money(t.price_cents)} = {money(t.price_cents * cur)}</div>}
               {t.remaining != null && t.remaining <= 25 && !t.soldOut && <div className="ds">Only {t.remaining} left</div>}
               {t.soldOut && <div className="ds">Sold out</div>}
-              <div className="pr" style={{ marginLeft: 0, marginTop: 6 }}>{t.is_comp || t.price_cents === 0 ? 'Free' : money(t.price_cents)}</div>
+              <div className="pr" style={{ marginLeft: 0, marginTop: 6 }}>{t.is_comp || t.price_cents === 0 ? 'Free' : `${money(t.price_cents)}${perPerson ? ' / person' : ''}`}</div>
             </div>
             {!t.soldOut && (
               <div className="stepper" style={{ alignSelf: 'center' }}>
-                <button type="button" onClick={() => setQty(t.id, (cart[t.id] || 0) - 1)}>−</button>
-                <input value={cart[t.id] || 0} onChange={(e) => setQty(t.id, parseInt(e.target.value, 10) || 0)} />
-                <button type="button" onClick={() => setQty(t.id, (cart[t.id] || 0) + 1)}>+</button>
+                <button type="button" onClick={dec}>−</button>
+                <input value={cur} onChange={(e) => onInput(e.target.value)} />
+                <button type="button" onClick={inc}>+</button>
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
