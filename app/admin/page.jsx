@@ -333,7 +333,7 @@ function Stepper({ value, onChange, min = 0 }) {
 function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
   const editing = !!ticket?.id;
   const [f, setF] = useState({
-    id: ticket?.id, name: ticket?.name || '', priceDollars: ticket ? (ticket.price_cents || 0) / 100 : 0,
+    id: ticket?.id, name: ticket?.name || '', priceDollars: ticket ? String((ticket.price_cents || 0) / 100) : '',
     description: ticket?.description || '', admits: ticket?.admits || 1, max_qty: ticket?.max_qty ?? '',
     is_comp: !!ticket?.is_comp, active: ticket?.active !== false, sort: ticket?.sort || 0, allot: { ...(ticket?.allot || {}) },
     category: ticket?.category || 'entry', min_qty: ticket?.min_qty || 1,
@@ -365,10 +365,19 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
   const del = async () => {
     if (!confirm('Delete this ticket type?')) return;
     setBusy(true);
-    const res = await fetch('/api/admin/tickets', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id: f.id }) });
-    const d = await res.json(); setBusy(false);
-    if (d.deactivated) onSaved('Had sales — turned off instead', { ticket: { ...ticket, active: false } });
-    else onSaved('Ticket deleted', { remove: f.id });
+    let res = await fetch('/api/admin/tickets', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id: f.id }) });
+    let d = await res.json();
+    if (d.deactivated) {
+      setBusy(false);
+      const ok = confirm(`This ticket has ${d.sold} purchase record(s), so it was turned OFF instead of deleted.\n\nPermanently DELETE it and those purchase records too?\nUse this only to clear test data — it cannot be undone.`);
+      if (!ok) return onSaved('Had sales — turned off instead', { ticket: { ...ticket, active: false } });
+      setBusy(true);
+      res = await fetch('/api/admin/tickets', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminPin: pin, id: f.id, force: true }) });
+      d = await res.json();
+    }
+    setBusy(false);
+    if (d.deleted) onSaved('Ticket deleted', { remove: f.id });
+    else setErr(d.message || 'Could not delete.');
   };
 
   return (
@@ -390,7 +399,7 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
       <div className="row">
         <div className="grow"><label className="f">Price</label>
           <div className="pricewrap"><span>$</span>
-            <input type="number" min="0" step="1" value={f.is_comp ? 0 : f.priceDollars} onChange={(e) => set('priceDollars', e.target.value)} disabled={f.is_comp} /></div></div>
+            <input type="number" min="0" step="0.01" inputMode="decimal" value={f.is_comp ? '' : (f.priceDollars ?? '')} onChange={(e) => set('priceDollars', e.target.value)} disabled={f.is_comp} placeholder="0" /></div></div>
         <div className="grow"><label className="f">Tickets available</label>
           <input type="number" min="0" step="1" value={f.max_qty} onChange={(e) => set('max_qty', e.target.value)} placeholder="unlimited" /></div>
       </div>

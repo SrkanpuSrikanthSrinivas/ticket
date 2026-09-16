@@ -57,11 +57,18 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  const { adminPin, id } = await req.json().catch(() => ({}));
+  const { adminPin, id, force } = await req.json().catch(() => ({}));
   if (adminPin !== process.env.ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
   try {
     const sold = (await sql`select count(*)::int c from tickets where ticket_type_id=${id}`)[0].c;
-    if (sold > 0) { await sql`update ticket_types set active=false where id=${id}`; return Response.json({ ok: true, deactivated: true }); }
+    // Has purchases and not forced → keep the record, just deactivate (safe default for production).
+    if (sold > 0 && !force) { await sql`update ticket_types set active=false where id=${id}`; return Response.json({ ok: true, deactivated: true, sold }); }
+    // Forced → remove its test purchase records first so the FK doesn't block the delete.
+    if (sold > 0 && force) {
+      await sql`delete from coupons where ticket_id in (select id from tickets where ticket_type_id=${id})`;
+      await sql`delete from tickets where ticket_type_id=${id}`;
+    }
+    await sql`delete from ticket_coupon_allotments where ticket_type_id=${id}`;
     await sql`delete from ticket_types where id=${id}`;
     return Response.json({ ok: true, deleted: true });
   } catch (e) { return Response.json({ error: 'db_error', message: String(e?.message || e) }, { status: 500 }); }
