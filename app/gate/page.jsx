@@ -23,8 +23,8 @@ function splitItems(str) {
 const initials = (s) => String(s || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 
 export default function Gate() {
-  const [pin, setPin] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [pin, setPin] = useState(process.env.NEXT_PUBLIC_GATE_PIN || '');
+  const [authed, setAuthed] = useState(true);
   const [mode, setMode] = useState('type');
   const [q, setQ] = useState('');
   const [matches, setMatches] = useState(null);
@@ -95,22 +95,13 @@ export default function Gate() {
 
   // --- PIN sign-in ---
   if (!authed) {
-    const press = (d) => { const n = (pin + d).slice(0, 6); setPin(n); };
     return (
       <div>
         <div className="topbar"><b>Gate check-in</b></div>
         <div className="wrap">
           <div className="card" style={{ textAlign: 'center' }}>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>Staff sign-in</div>
-            <h2 style={{ fontSize: 20 }}>Enter the gate PIN</h2>
-            <div className="pindots">{[0, 1, 2, 3].map((i) => <i key={i} className={pin.length > i ? 'f' : ''} />)}</div>
-            <div className="pinpad">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <button key={n} onClick={() => press(n)}>{n}</button>)}
-              <button onClick={() => setPin('')}>✕</button>
-              <button onClick={() => press(0)}>0</button>
-              <button onClick={() => setAuthed(pin.length >= 3)}>→</button>
-            </div>
-            <p className="hint">Ask the organizer for today's PIN.</p>
+            <h2 style={{ fontSize: 18 }}>Gate access isn't set up</h2>
+            <p className="hint">Ask the organizer to set <b>NEXT_PUBLIC_GATE_PIN</b> (to the staff PIN) and redeploy.</p>
           </div>
         </div>
       </div>
