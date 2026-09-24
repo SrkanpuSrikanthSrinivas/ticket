@@ -269,3 +269,8 @@ body.buyer-festive::before{
 /* --- modal fit fix: body scrolls instead of clipping; fits visible phone screen --- */
 .sheet{max-height:92vh;max-height:92dvh}
 .sheet-body{min-height:0}
+
+/* --- toggle visibility fix: track/knob are spans (inline), give them real box sizes --- */
+.switch .track{display:inline-block;vertical-align:middle}
+.switch .knob{display:block}
+.allot-row.switch > span:last-child{flex:none;display:inline-flex;align-items:center}
