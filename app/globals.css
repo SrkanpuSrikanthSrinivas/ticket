@@ -265,3 +265,7 @@ body.buyer-festive::before{
 .phone-input{width:100%;font-family:"Space Mono","SF Mono",monospace;font-size:24px;font-weight:700;text-align:center;
   padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:14px;letter-spacing:1px}
 .phone-input:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(59,30,84,.12)}
+
+/* --- modal fit fix: body scrolls instead of clipping; fits visible phone screen --- */
+.sheet{max-height:92vh;max-height:92dvh}
+.sheet-body{min-height:0}
