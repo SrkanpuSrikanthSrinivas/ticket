@@ -209,7 +209,7 @@ function EventModal({ pin, event, onClose, onSaved }) {
         <div className="hint" style={{ margin: '6px 0 0' }}>Shown as a highlighted note in the food-coupon card.</div></div>
       <div><label className="f">Food coupon guide (menu & approx. prices)</label>
         <textarea rows={6} value={f.food_note} onChange={(e) => setF({ ...f, food_note: e.target.value })}
-          placeholder={"1 Peanut chat — approx $6\nPav Bhaji — approx $7\nMasala Majjige — approx $2\nVada Paav — approx $4\n***Prices are approximate and may vary by vendor"}
+          placeholder={"1 plate pani puri — approx $6\nTomato slice — approx $6\nMango lassi — approx $4\nChapati curry — approx $6\n***Prices are approximate and may vary by vendor"}
           style={{ width: '100%', font: 'inherit', padding: '12px 13px', border: '1px solid var(--line)', borderRadius: '12px', resize: 'vertical' }} />
         <div className="hint" style={{ margin: '6px 0 0' }}>Shown to buyers so they know how food coupons can be used.</div></div>
       <div><label className="f">Convenience fee (%)</label>
@@ -387,6 +387,12 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
         <button className="btn btn-primary grow" disabled={busy} onClick={save}>{editing ? 'Save changes' : 'Create ticket'}</button>
       </>}>
+      {editing && (
+        <label className="allot-row switch" style={{ cursor: 'pointer' }}>
+          <div><div style={{ fontWeight: 600 }}>Active</div><div className="hint" style={{ margin: 0 }}>Show this ticket to buyers</div></div>
+          <span><input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /><span className="track"><span className="knob" /></span></span>
+        </label>
+      )}
       <div><label className="f">Ticket name</label>
         <input value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Adult, Family (up to 4)" autoFocus /></div>
       <div><label className="f">Section</label>
@@ -432,12 +438,6 @@ function TicketModal({ pin, ticket, coupons, onClose, onSaved }) {
             </div>
           ))}
       </div>
-      {editing && (
-        <label className="allot-row switch" style={{ cursor: 'pointer' }}>
-          <div><div style={{ fontWeight: 600 }}>Active</div><div className="hint" style={{ margin: 0 }}>Show this ticket to buyers</div></div>
-          <span><input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /><span className="track"><span className="knob" /></span></span>
-        </label>
-      )}
       {err && <div className="err">{err}</div>}
     </Sheet>
   );

@@ -1,0 +1,9 @@
+-- OPTIONAL — run ONLY if the old "Group Tickets" (admits=10, 2 sold = 20 guests)
+-- should NOT count as 20 people. This changes how those 2 tickets count toward
+-- the guest headcount. Do NOT run if 20 guests is correct (two groups of 10).
+--
+-- Example: make those 2 old group tickets count as 2 guests instead of 20:
+--   update ticket_types set admits = 1
+--   where id = '9481d6c8-a98f-4d5f-80c2-10b30acf5cd1';
+--
+-- (Left commented on purpose — decide first, then uncomment to apply.)
